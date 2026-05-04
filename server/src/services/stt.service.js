@@ -1,18 +1,24 @@
-const { Deepgram } = require('@deepgram/sdk');
+const { DeepgramClient } = require('@deepgram/sdk');
 
-const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
+const deepgram = new DeepgramClient(process.env.DEEPGRAM_API_KEY);
 
 /**
  * Transcribes audio buffer using Deepgram Nova-2 model.
  */
 async function transcribeAudio(audioBuffer) {
   try {
-    const response = await deepgram.transcription.preRecorded(
-      { buffer: audioBuffer, mimetype: 'audio/webm' },
-      { smart_format: true, model: 'nova-2' }
+    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+      audioBuffer,
+      { 
+        smart_format: true, 
+        model: 'nova-2',
+        mimetype: 'audio/webm'
+      }
     );
     
-    return response.results?.channels[0]?.alternatives[0]?.transcript || "";
+    if (error) throw error;
+    
+    return result.results?.channels[0]?.alternatives[0]?.transcript || "";
   } catch (error) {
     console.error('STT Error:', error);
     return "";

@@ -29,16 +29,19 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   socket.on('join-interview', async (data) => {
-    const { roomId, userId } = data;
+    const { roomId, userId, topic, difficulty, duration } = data;
     socket.join(roomId);
     
-    // Initialize history
+    // Initialize session with context
     sessionStore.set(roomId, {
       userId,
+      topic,
+      difficulty,
+      duration,
       history: []
     });
 
-    const greeting = "Hello! I'm your AI interviewer. To get started, could you briefly introduce yourself and mention the role you're applying for?";
+    const greeting = `Hello! I'm your AI interviewer. Today we'll be discussing ${topic} at a ${difficulty} level for the next ${duration}. To get started, could you briefly introduce yourself and your experience with ${topic}?`;
     
     const audioBuffer = await textToSpeech(greeting);
 
@@ -67,8 +70,11 @@ io.on('connection', (socket) => {
     // Emit live transcript
     socket.emit('user-transcript', { text: userText });
 
-    // 2. Generate Next Question
-    const nextQuestion = await generateNextQuestion(session.history, userText);
+    // 2. Generate Next Question using session context
+    const nextQuestion = await generateNextQuestion(session.history, userText, {
+      topic: session.topic,
+      difficulty: session.difficulty
+    });
     
     // Update history
     session.history.push({ role: 'user', content: userText });
