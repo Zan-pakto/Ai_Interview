@@ -69,7 +69,18 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
         videoRef.current.srcObject = stream;
       }
       
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // Detect supported MIME type for audio
+      const mimeType = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/wav',
+        ''
+      ].find(type => type === '' || MediaRecorder.isTypeSupported(type));
+
+      // Create a separate stream for audio recording to avoid issues with video tracks
+      const audioStream = new MediaStream(stream.getAudioTracks());
+      const mediaRecorder = new MediaRecorder(audioStream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -79,7 +90,9 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioChunksRef.current.length === 0) return;
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
@@ -107,12 +120,30 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
   };
 
   const toggleRecording = () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-    } else {
-      mediaRecorderRef.current?.start();
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) {
+      console.error("MediaRecorder not initialized");
+      return;
     }
-    setIsRecording(!isRecording);
+
+    try {
+      if (isRecording) {
+        if (recorder.state !== 'inactive') {
+          recorder.stop();
+        }
+        setIsRecording(false);
+      } else {
+        if (recorder.state === 'inactive') {
+          audioChunksRef.current = [];
+          recorder.start();
+          setIsRecording(true);
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling recorder:", err);
+      // Attempt to recover state
+      setIsRecording(false);
+    }
   };
 
   const formatTime = (totalSeconds: number) => {

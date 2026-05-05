@@ -1,25 +1,26 @@
-const { OpenAI } = require('openai');
+const { DeepgramClient } = require('@deepgram/sdk');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const deepgram = new DeepgramClient(process.env.DEEPGRAM_API_KEY);
 
 /**
- * Converts text to speech using OpenAI TTS.
+ * Converts text to speech using Deepgram Aura TTS.
  * Returns a buffer of the audio.
  */
 async function textToSpeech(text) {
   try {
-    const mp3 = await openai.audio.speech.create({
-      model: "tts-1",
-      voice: "alloy",
-      input: text,
-    });
+    const response = await deepgram.speak.v1.audio.generate(
+      { text },
+      {
+        model: 'aura-asteria-en',
+        container: 'mp3',
+      }
+    );
 
-    const buffer = Buffer.from(await mp3.arrayBuffer());
+    // In v5 SDK, the response object contains the data and helper methods
+    const buffer = Buffer.from(await response.arrayBuffer());
     return buffer;
   } catch (error) {
-    console.error('TTS Error:', error);
+    console.error('Deepgram TTS Error:', error);
     return null;
   }
 }

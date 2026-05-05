@@ -7,16 +7,13 @@ const deepgram = new DeepgramClient(process.env.DEEPGRAM_API_KEY);
  */
 async function transcribeAudio(audioBuffer) {
   try {
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+    const result = await deepgram.listen.v1.media.transcribeFile(
       audioBuffer,
       { 
         smart_format: true, 
-        model: 'nova-2',
-        mimetype: 'audio/webm'
+        model: 'nova-2'
       }
     );
-    
-    if (error) throw error;
     
     return result.results?.channels[0]?.alternatives[0]?.transcript || "";
   } catch (error) {
