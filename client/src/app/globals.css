@@ -1,16 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
-  --background: #171717;
-  --foreground: #ededed;
+  --background: #101320;
+  --foreground: #f6f8ff;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at 10% 15%, rgba(99, 102, 241, 0.22), transparent 35%),
+    radial-gradient(circle at 82% 8%, rgba(236, 72, 153, 0.18), transparent 32%),
+    radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.16), transparent 42%);
 }
 
 @layer utilities {
@@ -21,4 +24,53 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .glass-panel {
+    @apply border border-white/15 bg-white/[0.08] backdrop-blur-2xl;
+  }
+
+  .aurora-outline {
+    position: relative;
+  }
+
+  .aurora-outline::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(125deg, rgba(59, 130, 246, 0.55), rgba(168, 85, 247, 0.45), rgba(14, 165, 233, 0.5));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  .aurora-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .aurora-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.55), rgba(168, 85, 247, 0.55));
+    border-radius: 999px;
+  }
+
+  .aurora-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(96, 165, 250, 0.55) rgba(255, 255, 255, 0.03);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) scale(1.03);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 9s ease-in-out infinite;
 }

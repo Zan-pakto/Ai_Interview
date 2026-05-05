@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -18,9 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} dark`}>
-      <body className="bg-[#050505] text-white font-outfit antialiased selection:bg-blue-500/30">
-        {children}
+    <html lang="en" className={`${outfit.variable} scroll-smooth`} suppressHydrationWarning>
+      <body className="bg-[#fafafa] text-neutral-900 dark:bg-[#020202] dark:text-[#ededed] font-outfit antialiased selection:bg-blue-500/30 transition-colors duration-300">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
