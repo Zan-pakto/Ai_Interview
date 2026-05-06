@@ -11,9 +11,10 @@ interface InterviewViewProps {
   topic: string;
   difficulty: string;
   duration: string;
+  userId?: string;
 }
 
-export default function InterviewView({ topic, difficulty, duration }: InterviewViewProps) {
+export default function InterviewView({ topic, difficulty, duration, userId }: InterviewViewProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -23,6 +24,9 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
   const [liveTranscript, setLiveTranscript] = useState("");
   const [focusMode, setFocusMode] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [feedback, setFeedback] = useState<any | null>(null);
+  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -45,19 +49,62 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
       setTranscript(prev => [...prev, { role: 'user', text: data.text }]);
     });
 
+    newSocket.on('interview-feedback', (data) => {
+      setFeedback(data.feedback);
+      setIsGeneratingFeedback(false);
+    });
+
     return () => {
       newSocket.disconnect();
     };
   }, []);
 
+  const endInterview = React.useCallback(() => {
+    setIsCompleted(true);
+    setIsGeneratingFeedback(true);
+    
+    // Stop stream
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    
+    // Stop recording if running
+    if (mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch (e) {
+        console.error("Error stopping recorder on wrap up:", e);
+      }
+    }
+    setIsRecording(false);
+    
+    socket?.emit('end-interview', { roomId: 'test-room' });
+  }, [socket]);
+
   useEffect(() => {
-    if (!isJoined) return;
+    if (!isJoined || isCompleted) return;
+    
+    const durationMinutes = parseInt(duration, 10) || 30;
+    const totalSecondsLimit = durationMinutes * 60;
+
     const interval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
+      setElapsedSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= totalSecondsLimit) {
+          clearInterval(interval);
+          endInterview();
+          return totalSecondsLimit;
+        }
+        return next;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isJoined]);
+  }, [isJoined, isCompleted, duration, endInterview]);
 
   const startStream = async () => {
     try {
@@ -110,7 +157,7 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
   const joinInterview = () => {
     socket?.emit('join-interview', { 
       roomId: 'test-room', 
-      userId: 'user-' + Math.random(),
+      userId: userId || ('user-' + Math.random()),
       topic,
       difficulty,
       duration
@@ -319,6 +366,15 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
               )}
             </button>
 
+            {isJoined && (
+              <button 
+                onClick={endInterview}
+                className="h-12 px-5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-red-500/15 border border-red-300/30 text-red-200 hover:bg-red-500/25 active:scale-95 shadow-[0_4px_12px_rgba(239,68,68,0.15)]"
+              >
+                End Interview
+              </button>
+            )}
+
             <button 
               onClick={() => setVideoOn(!videoOn)}
               className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border ${
@@ -415,6 +471,148 @@ export default function InterviewView({ topic, difficulty, duration }: Interview
           </div>
         </aside>
       </main>
+
+      {isCompleted && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 md:p-8"
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="max-w-4xl w-full bg-slate-900/85 border border-white/15 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl aurora-outline my-auto animate-fade-in"
+          >
+            {/* Background glow effects */}
+            <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full bg-cyan-400/15 blur-[120px] pointer-events-none" />
+            <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-fuchsia-500/15 blur-[120px] pointer-events-none" />
+
+            <header className="text-center mb-8 relative">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-cyan-400/10 to-fuchsia-400/10 border border-cyan-300/30 rounded-full text-cyan-200 text-xs font-semibold tracking-wide mb-4">
+                <ShieldCheck size={14} className="text-cyan-300" />
+                <span>Interview Evaluation Completed</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-semibold bg-gradient-to-r from-cyan-300 via-blue-200 to-fuchsia-300 bg-clip-text text-transparent pb-1">
+                Performance Summary
+              </h2>
+              <p className="text-slate-300 mt-2 text-sm md:text-base font-light">
+                Review your technical score, personalized feedback, and recommendations below.
+              </p>
+            </header>
+
+            {isGeneratingFeedback ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <div className="relative w-20 h-20">
+                  <div className="absolute inset-0 rounded-full border-4 border-white/5" />
+                  <div className="absolute inset-0 rounded-full border-4 border-t-cyan-300 border-r-fuchsia-300 animate-spin" />
+                </div>
+                <p className="text-sm font-semibold text-slate-200 uppercase tracking-widest animate-pulse">
+                  AI is synthesizing feedback...
+                </p>
+                <p className="text-xs text-slate-400">Evaluating technical responses, pacing, and vocabulary</p>
+              </div>
+            ) : feedback ? (
+              <div className="space-y-8 relative">
+                {/* Score and Pacing Row */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                  {/* Score Circle Card */}
+                  <div className="md:col-span-5 bg-white/[0.04] border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-300/5 to-fuchsia-300/5 opacity-50" />
+                    <div className="relative w-32 h-32 flex items-center justify-center mb-4">
+                      <div className="absolute inset-0 rounded-full border border-dashed border-white/10 animate-spin" style={{ animationDuration: '20s' }} />
+                      <div className="absolute inset-2 rounded-full border border-cyan-300/20" />
+                      <div className="absolute inset-4 rounded-full bg-slate-950/80 flex flex-col items-center justify-center border border-white/10 shadow-inner">
+                        <span className="text-4xl font-bold bg-gradient-to-r from-cyan-300 to-fuchsia-300 bg-clip-text text-transparent">
+                          {feedback.overallScore}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Out of 100</span>
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-white text-base">Overall Score</h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-[200px]">Based on technical correctness and communication quality.</p>
+                  </div>
+
+                  {/* Stats and Highlights */}
+                  <div className="md:col-span-7 flex flex-col justify-between gap-4">
+                    <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6 flex-1">
+                      <h3 className="font-semibold text-slate-200 text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <Gauge size={16} className="text-cyan-300" /> Executive Summary
+                      </h3>
+                      <p className="text-sm text-slate-300 leading-relaxed font-light">
+                        {feedback.summary}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400">Response Pacing</p>
+                        <p className="text-lg font-semibold text-cyan-200 mt-1">{feedback.pacing}</p>
+                      </div>
+                      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400">Turns Completed</p>
+                        <p className="text-lg font-semibold text-fuchsia-200 mt-1">{transcript.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strengths and Improvements */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Strengths */}
+                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6">
+                    <h4 className="font-semibold text-emerald-300 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" /> Key Strengths
+                    </h4>
+                    <ul className="space-y-3">
+                      {feedback.strengths?.map((strength: string, idx: number) => (
+                        <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
+                          <span className="text-emerald-400 font-bold">•</span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Areas for Improvement */}
+                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6">
+                    <h4 className="font-semibold text-amber-300 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" /> Areas of Focus
+                    </h4>
+                    <ul className="space-y-3">
+                      {feedback.improvements?.map((imp: string, idx: number) => (
+                        <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
+                          <span className="text-amber-400 font-bold">•</span>
+                          <span>{imp}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-center gap-4">
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="px-8 py-3.5 bg-gradient-to-r from-cyan-300 via-blue-300 to-fuchsia-300 text-slate-900 rounded-xl font-semibold text-sm transition-all hover:brightness-105 active:scale-95 shadow-lg"
+                  >
+                    Start New Session
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <p className="text-sm text-slate-300">Could not retrieve feedback. Don't worry, you can restart anytime.</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2.5 bg-white/10 border border-white/20 text-white rounded-lg text-sm hover:bg-white/15"
+                >
+                  Restart
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }

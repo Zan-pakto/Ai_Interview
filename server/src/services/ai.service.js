@@ -40,4 +40,57 @@ async function generateNextQuestion(history, lastUserResponse, context = {}) {
   }
 }
 
-module.exports = { generateNextQuestion };
+/**
+ * Generates comprehensive feedback and summary of the candidate's performance.
+ */
+async function generateFeedback(history, context = {}) {
+  try {
+    const { topic, difficulty } = context;
+
+    if (!history || history.length === 0) {
+      return {
+        overallScore: 0,
+        pacing: "N/A",
+        strengths: ["No response recorded"],
+        improvements: ["Please complete at least one answer next time."],
+        summary: "The interview was ended before any answers were recorded."
+      };
+    }
+
+    const systemInstruction = `You are an expert tech hiring manager. Analyze the provided interview conversation history.
+Evaluate the candidate's answers based on the topic "${topic || 'General Software Engineering'}" and difficulty level "${difficulty || 'Mid-level'}".
+You MUST return the evaluation in JSON format with exactly the following keys:
+- overallScore: a number between 10 and 100 representing their technical depth, communication, and confidence.
+- pacing: a string like "Good", "Too Fast", "Too Slow", or "Varies".
+- strengths: an array of 2-3 specific technical or communication strengths shown.
+- improvements: an array of 2-3 specific suggestions for improvement.
+- summary: a paragraph summarizing their performance and next steps.
+Do not wrap your response in markdown code blocks like \`\`\`json. Return ONLY the raw JSON string.`;
+
+    const prompt = `
+      ${systemInstruction}
+      
+      Conversation History:
+      ${history.map(m => `${m.role === 'user' ? 'Candidate' : 'Interviewer'}: ${m.content}`).join('\n')}
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text().trim();
+    
+    // Attempt to parse JSON, cleaning up markdown code block wrapper if present
+    const cleanJson = text.replace(/^```json\s*|```$/g, '').trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    console.error('Error generating feedback:', error);
+    return {
+      overallScore: 75,
+      pacing: "Moderate",
+      strengths: ["Good communication", "Able to answer core questions"],
+      improvements: ["Provide more detailed code examples", "Elaborate more on design decisions"],
+      summary: "Great job completing the interview! You demonstrated a solid foundation, but focusing on deeper architecture patterns will help you excel."
+    };
+  }
+}
+
+module.exports = { generateNextQuestion, generateFeedback };

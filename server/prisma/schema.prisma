@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
+}
+
+model Session {
+  roomId       String    @id @unique
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic        String
+  difficulty   String
+  duration     String
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+  overallScore Int?
+  pacing       String?
+  summary      String?
+  strengths    String[]
+  improvements String[]
+  messages     Message[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  role      String   // 'user' or 'ai'
+  content   String
+  timestamp DateTime @default(now())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [roomId], onDelete: Cascade)
+}

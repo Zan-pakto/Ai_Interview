@@ -7,9 +7,10 @@ import { ThemeToggle } from './ThemeToggle';
 
 interface LandingViewProps {
   onGetStarted: () => void;
+  onLoginClick?: () => void;
 }
 
-export default function LandingView({ onGetStarted }: LandingViewProps) {
+export default function LandingView({ onGetStarted, onLoginClick }: LandingViewProps) {
   const features = [
     {
       icon: <Brain className="text-blue-500 dark:text-blue-400" size={24} />,
@@ -74,7 +75,10 @@ export default function LandingView({ onGetStarted }: LandingViewProps) {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <div className="h-4 w-px bg-neutral-200 dark:bg-white/10 hidden md:block transition-colors"></div>
-            <button className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block">
+            <button 
+              onClick={onLoginClick}
+              className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block"
+            >
               Log in
             </button>
             <button 

@@ -4,15 +4,108 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const prisma = require('./services/db.service');
 
-const { generateNextQuestion } = require('./services/ai.service');
+const { generateNextQuestion, generateFeedback } = require('./services/ai.service');
 const { transcribeAudio } = require('./services/stt.service');
 const { textToSpeech } = require('./services/tts.service');
 
 const app = express();
 app.use(cors());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false // Disable for development to allow all sources
+}));
 app.use(express.json());
+
+const JWT_SECRET = process.env.JWT_SECRET || 'aura_super_secret_key_123';
+
+// Auth Endpoints
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name: name || email.split('@')[0]
+      }
+    });
+
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name }
+    });
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid email or password' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, email: true, name: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -43,6 +136,24 @@ io.on('connection', (socket) => {
 
     const greeting = `Hello! I'm your AI interviewer. Today we'll be discussing ${topic} at a ${difficulty} level for the next ${duration}. To get started, could you briefly introduce yourself and your experience with ${topic}?`;
     
+    try {
+      await prisma.session.upsert({
+        where: { roomId },
+        update: { userId, topic, difficulty, duration },
+        create: { roomId, userId, topic, difficulty, duration }
+      });
+
+      await prisma.message.create({
+        data: {
+          role: 'ai',
+          content: greeting,
+          sessionId: roomId
+        }
+      });
+    } catch (dbErr) {
+      console.error("Database error in join-interview:", dbErr);
+    }
+
     const audioBuffer = await textToSpeech(greeting);
 
     socket.emit('ai-message', {
@@ -80,6 +191,17 @@ io.on('connection', (socket) => {
     session.history.push({ role: 'user', content: userText });
     session.history.push({ role: 'assistant', content: nextQuestion });
 
+    try {
+      await prisma.message.createMany({
+        data: [
+          { role: 'user', content: userText, sessionId: roomId },
+          { role: 'ai', content: nextQuestion, sessionId: roomId }
+        ]
+      });
+    } catch (dbErr) {
+      console.error("Database error saving messages:", dbErr);
+    }
+
     // 3. TTS
     const nextAudioBuffer = await textToSpeech(nextQuestion);
 
@@ -89,6 +211,40 @@ io.on('connection', (socket) => {
       audio: nextAudioBuffer ? nextAudioBuffer.toString('base64') : null,
       timestamp: new Date().toISOString()
     });
+  });
+
+  socket.on('end-interview', async (data) => {
+    const { roomId } = data;
+    const session = sessionStore.get(roomId);
+    if (!session) return;
+
+    try {
+      const feedback = await generateFeedback(session.history, {
+        topic: session.topic,
+        difficulty: session.difficulty
+      });
+
+      try {
+        await prisma.session.update({
+          where: { roomId },
+          data: {
+            completedAt: new Date(),
+            overallScore: feedback.overallScore,
+            pacing: feedback.pacing,
+            summary: feedback.summary,
+            strengths: feedback.strengths || [],
+            improvements: feedback.improvements || []
+          }
+        });
+      } catch (dbErr) {
+        console.error("Database error saving session feedback:", dbErr);
+      }
+
+      socket.emit('interview-feedback', { feedback });
+    } catch (err) {
+      console.error("Error generating interview feedback:", err);
+      socket.emit('error', { message: "Failed to generate feedback summary." });
+    }
   });
 
   socket.on('disconnect', () => {
