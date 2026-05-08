@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Mic, MicOff, Video, VideoOff, Activity, AlignLeft, ShieldCheck, Zap, Timer, Gauge, Bot, CirclePause } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getSocketToken } from '@/actions/auth.actions';
 
 const SOCKET_SERVER = "http://localhost:5000";
 
@@ -11,10 +12,11 @@ interface InterviewViewProps {
   topic: string;
   difficulty: string;
   duration: string;
+  roomId: string;
   userId?: string;
 }
 
-export default function InterviewView({ topic, difficulty, duration, userId }: InterviewViewProps) {
+export default function InterviewView({ topic, difficulty, duration, roomId, userId }: InterviewViewProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -33,29 +35,38 @@ export default function InterviewView({ topic, difficulty, duration, userId }: I
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    const newSocket = io(SOCKET_SERVER);
-    setSocket(newSocket);
+    async function initSocket() {
+      const token = await getSocketToken();
+      const newSocket = io(SOCKET_SERVER, {
+        auth: { token }
+      });
+      setSocket(newSocket);
 
-    newSocket.on('ai-message', async (data) => {
-      setTranscript(prev => [...prev, { role: 'ai', text: data.text }]);
-      if (data.audio) {
-        const audio = new Audio("data:audio/mp3;base64," + data.audio);
-        audio.play();
-      }
-    });
+      newSocket.on('ai-message', async (data) => {
+        setTranscript(prev => [...prev, { role: 'ai', text: data.text }]);
+        if (data.audio) {
+          const audio = new Audio("data:audio/mp3;base64," + data.audio);
+          audio.play();
+        }
+      });
 
-    newSocket.on('user-transcript', (data) => {
-      setLiveTranscript(data.text);
-      setTranscript(prev => [...prev, { role: 'user', text: data.text }]);
-    });
+      newSocket.on('user-transcript', (data) => {
+        setLiveTranscript(data.text);
+        setTranscript(prev => [...prev, { role: 'user', text: data.text }]);
+      });
 
-    newSocket.on('interview-feedback', (data) => {
-      setFeedback(data.feedback);
-      setIsGeneratingFeedback(false);
-    });
+      newSocket.on('interview-feedback', (data) => {
+        setFeedback(data.feedback);
+        setIsGeneratingFeedback(false);
+      });
+
+      return newSocket;
+    }
+
+    const socketPromise = initSocket();
 
     return () => {
-      newSocket.disconnect();
+      socketPromise.then(s => s.disconnect());
     };
   }, []);
 
@@ -82,8 +93,8 @@ export default function InterviewView({ topic, difficulty, duration, userId }: I
     }
     setIsRecording(false);
     
-    socket?.emit('end-interview', { roomId: 'test-room' });
-  }, [socket]);
+    socket?.emit('end-interview', { roomId });
+  }, [socket, roomId]);
 
   useEffect(() => {
     if (!isJoined || isCompleted) return;
@@ -144,7 +155,7 @@ export default function InterviewView({ topic, difficulty, duration, userId }: I
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           const base64Audio = (reader.result as string).split(',')[1];
-          socket?.emit('user-answer', { roomId: 'test-room', audio: base64Audio });
+          socket?.emit('user-answer', { roomId, audio: base64Audio });
         };
         audioChunksRef.current = [];
       };
@@ -156,7 +167,7 @@ export default function InterviewView({ topic, difficulty, duration, userId }: I
 
   const joinInterview = () => {
     socket?.emit('join-interview', { 
-      roomId: 'test-room', 
+      roomId, 
       userId: userId || ('user-' + Math.random()),
       topic,
       difficulty,

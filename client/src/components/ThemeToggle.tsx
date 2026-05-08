@@ -18,7 +18,12 @@ export function ThemeToggle() {
 
   return (
     <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => {
+        console.log("Current theme:", theme);
+        const newTheme = theme === "dark" ? "light" : "dark";
+        console.log("Setting theme to:", newTheme);
+        setTheme(newTheme);
+      }}
       className="relative flex items-center justify-center w-9 h-9 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-100 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.06] transition-colors overflow-hidden"
     >
       <Sun size={18} className="absolute transition-all scale-100 rotate-0 dark:scale-0 dark:-rotate-90 text-neutral-600" />

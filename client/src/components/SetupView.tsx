@@ -4,27 +4,33 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Target, Clock, Rocket, Sparkles, ChevronRight, WandSparkles, Brain, Gauge } from 'lucide-react';
 
-interface SetupData {
-  topic: string;
-  difficulty: string;
-  duration: string;
-}
+import { createSessionAction } from '@/actions/interview.actions';
 
 interface SetupViewProps {
-  onStart: (data: SetupData) => void;
+  onStart: (config: { topic: string; difficulty: string; duration: string; roomId: string }) => void;
+  user: { id: string; email: string; name: string } | null;
 }
 
-export default function SetupView({ onStart }: SetupViewProps) {
+export default function SetupView({ onStart, user }: SetupViewProps) {
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("Mid-level");
   const [duration, setDuration] = useState("30 min");
   const [coachMode, setCoachMode] = useState("Challenger");
+  const [isCreating, setIsCreating] = useState(false);
   const quickTopics = ["React System Design", "Node.js APIs", "Behavioral Leadership", "Frontend Performance"];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic) return;
-    onStart({ topic, difficulty, duration });
+    setIsCreating(true);
+    try {
+      const session = await createSessionAction({ topic, difficulty, duration });
+      onStart({ topic, difficulty, duration, roomId: session.roomId });
+    } catch (err) {
+      console.error("Failed to create session:", err);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (

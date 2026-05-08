@@ -118,11 +118,28 @@ const io = new Server(server, {
 // Session memory (In-memory for now, use Redis/Postgres for scaling)
 const sessionStore = new Map();
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication error: Token missing'));
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return next(new Error('Authentication error: Invalid token'));
+    }
+    socket.user = decoded;
+    next();
+  });
+});
+
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log('User connected:', socket.id, 'User ID:', socket.user?.userId);
 
   socket.on('join-interview', async (data) => {
-    const { roomId, userId, topic, difficulty, duration } = data;
+    const { roomId, topic, difficulty, duration } = data;
+    const userId = socket.user.userId;
+    
     socket.join(roomId);
     
     // Initialize session with context

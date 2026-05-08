@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { signupAction, loginAction } from '@/actions/auth.actions';
 
 interface AuthViewProps {
   initialMode?: 'login' | 'signup';
-  onSuccess: (user: { id: string; email: string; name: string }, token: string) => void;
+  onSuccess: (user: any, token: string) => void;
   onBack: () => void;
 }
 
@@ -22,44 +23,28 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setIsLoading(true);
-
-    const url = mode === 'login' 
-      ? 'http://localhost:5000/api/auth/login' 
-      : 'http://localhost:5000/api/auth/signup';
-
-    const payload = mode === 'login' 
-      ? { email, password } 
-      : { email, password, name };
+    setError(null);
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const result = mode === 'signup' 
+        ? await signupAction({ email, password, name })
+        : await loginAction({ email, password });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
+      if (result.error) {
+        setError(result.error);
+      } else {
+        onSuccess(result.user, "session-cookie-handled");
       }
-
-      // Save to localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      onSuccess(data.user, data.token);
     } catch (err: any) {
-      setError(err.message || 'Connection failed. Please ensure the server is running.');
+      setError(err.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-[#020202] text-neutral-900 dark:text-[#ededed] font-outfit selection:bg-blue-500/30 overflow-x-hidden relative flex items-center justify-center p-4 transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground font-outfit selection:bg-blue-500/30 overflow-x-hidden relative flex items-center justify-center p-4 transition-colors duration-300">
       {/* SaaS Background Grid */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none transition-colors duration-300"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[100%] h-[50%] bg-blue-500/5 dark:bg-blue-600/10 blur-[150px] rounded-full pointer-events-none transition-colors duration-300" />

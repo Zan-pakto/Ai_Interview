@@ -5,12 +5,19 @@ import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Brain, Target, LineChart, Shield, Layout, Zap, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
+import { logoutAction } from '@/actions/auth.actions';
+
 interface LandingViewProps {
-  onGetStarted: () => void;
-  onLoginClick?: () => void;
+  onStart: () => void;
+  onLogin: () => void;
+  user: { id: string; email: string; name: string } | null;
 }
 
-export default function LandingView({ onGetStarted, onLoginClick }: LandingViewProps) {
+export default function LandingView({ onStart, onLogin, user }: LandingViewProps) {
+  const handleLogout = async () => {
+    await logoutAction();
+    window.location.reload();
+  };
   const features = [
     {
       icon: <Brain className="text-blue-500 dark:text-blue-400" size={24} />,
@@ -51,7 +58,7 @@ export default function LandingView({ onGetStarted, onLoginClick }: LandingViewP
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-[#020202] text-neutral-900 dark:text-[#ededed] font-outfit selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground font-outfit selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-300">
       {/* SaaS Background Grid */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none transition-colors duration-300"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[100%] h-[50%] bg-blue-500/5 dark:bg-blue-600/10 blur-[150px] rounded-full pointer-events-none transition-colors duration-300" />
@@ -75,18 +82,37 @@ export default function LandingView({ onGetStarted, onLoginClick }: LandingViewP
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <div className="h-4 w-px bg-neutral-200 dark:bg-white/10 hidden md:block transition-colors"></div>
-            <button 
-              onClick={onLoginClick}
-              className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block"
-            >
-              Log in
-            </button>
-            <button 
-              onClick={onGetStarted}
-              className="px-5 py-2 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors active:scale-95"
-            >
-              Sign Up
-            </button>
+            {user ? (
+              <>
+                <button 
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block"
+                >
+                  Sign Out
+                </button>
+                <button 
+                  onClick={onStart}
+                  className="px-5 py-2 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors active:scale-95"
+                >
+                  Dashboard
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={onLogin}
+                  className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block"
+                >
+                  Log in
+                </button>
+                <button 
+                  onClick={onStart}
+                  className="px-5 py-2 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors active:scale-95"
+                >
+                  Sign Up
+                </button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -135,10 +161,10 @@ export default function LandingView({ onGetStarted, onLoginClick }: LandingViewP
             className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center"
           >
             <button 
-              onClick={onGetStarted}
+              onClick={onStart}
               className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-2xl font-semibold text-base transition-all hover:bg-neutral-800 dark:hover:bg-neutral-200 active:scale-95 w-full sm:w-auto overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(255,255,255,0.1)]"
             >
-              <span>Start Free Practice</span>
+              <span>{user ? 'Go to Dashboard' : 'Start Free Practice'}</span>
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
             <button className="flex items-center justify-center gap-3 px-8 py-4 bg-white dark:bg-white/[0.03] border border-neutral-200 dark:border-white/10 text-neutral-900 dark:text-white rounded-2xl font-semibold text-base transition-all hover:bg-neutral-50 dark:hover:bg-white/[0.06] active:scale-95 w-full sm:w-auto">

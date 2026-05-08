@@ -1,3 +1,4 @@
+import "@/lib/polyfills";
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
@@ -20,8 +21,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${outfit.variable} scroll-smooth`} suppressHydrationWarning>
-      <body className="bg-[#fafafa] text-neutral-900 dark:bg-[#020202] dark:text-[#ededed] font-outfit antialiased selection:bg-blue-500/30 transition-colors duration-300">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <body className="bg-background text-foreground font-outfit antialiased selection:bg-blue-500/30">
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="dark" 
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           {children}
         </ThemeProvider>
       </body>
