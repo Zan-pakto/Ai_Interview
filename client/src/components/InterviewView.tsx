@@ -69,7 +69,7 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
 
         const newSocket = io(SOCKET_SERVER, {
           auth: { token },
-          transports: ['polling', 'websocket']
+          transports: ['websocket']
         });
 
         newSocket.on('ai-message', async (data) => {
