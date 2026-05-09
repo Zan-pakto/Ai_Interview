@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video, VideoOff, Activity, AlignLeft, ShieldCheck, Zap, Timer, Gauge, Bot, CirclePause } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Activity, AlignLeft, ShieldCheck, Zap, Timer, Gauge, Bot, CirclePause, ChevronRight, Sparkles, LayoutDashboard, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSocketToken } from '@/actions/auth.actions';
 
-const SOCKET_SERVER = "http://localhost:5000";
+const SOCKET_SERVER = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
 interface InterviewViewProps {
   topic: string;
@@ -33,55 +33,18 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const socketRef = useRef<Socket | null>(null);
 
-  useEffect(() => {
-    async function initSocket() {
-      const token = await getSocketToken();
-      const newSocket = io(SOCKET_SERVER, {
-        auth: { token }
-      });
-      setSocket(newSocket);
-
-      newSocket.on('ai-message', async (data) => {
-        setTranscript(prev => [...prev, { role: 'ai', text: data.text }]);
-        if (data.audio) {
-          const audio = new Audio("data:audio/mp3;base64," + data.audio);
-          audio.play();
-        }
-      });
-
-      newSocket.on('user-transcript', (data) => {
-        setLiveTranscript(data.text);
-        setTranscript(prev => [...prev, { role: 'user', text: data.text }]);
-      });
-
-      newSocket.on('interview-feedback', (data) => {
-        setFeedback(data.feedback);
-        setIsGeneratingFeedback(false);
-      });
-
-      return newSocket;
-    }
-
-    const socketPromise = initSocket();
-
-    return () => {
-      socketPromise.then(s => s.disconnect());
-    };
-  }, []);
-
-  const endInterview = React.useCallback(() => {
+  const endInterview = useCallback(() => {
     setIsCompleted(true);
     setIsGeneratingFeedback(true);
     
-    // Stop stream
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
     
-    // Stop recording if running
     if (mediaRecorderRef.current) {
       try {
         if (mediaRecorderRef.current.state !== 'inactive') {
@@ -93,8 +56,54 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
     }
     setIsRecording(false);
     
-    socket?.emit('end-interview', { roomId });
-  }, [socket, roomId]);
+    socketRef.current?.emit('end-interview', { roomId });
+  }, [roomId]);
+
+  useEffect(() => {
+    let active = true;
+    const init = async () => {
+      try {
+        const token = await getSocketToken();
+        if (!active) return;
+
+        const newSocket = io(SOCKET_SERVER, {
+          auth: { token }
+        });
+
+        newSocket.on('ai-message', async (data) => {
+          setTranscript(prev => [...prev, { role: 'ai', text: data.text }]);
+          if (data.audio) {
+            const audio = new Audio("data:audio/mp3;base64," + data.audio);
+            audio.play();
+          }
+        });
+
+        newSocket.on('user-transcript', (data) => {
+          setLiveTranscript(data.text);
+          setTranscript(prev => [...prev, { role: 'user', text: data.text }]);
+        });
+
+        newSocket.on('interview-feedback', (data) => {
+          setFeedback(data.feedback);
+          setIsGeneratingFeedback(false);
+        });
+
+        socketRef.current = newSocket;
+        setSocket(newSocket);
+      } catch (err) {
+        console.error("Socket initialization failed:", err);
+      }
+    };
+
+    init();
+
+    return () => {
+      active = false;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isJoined || isCompleted) return;
@@ -127,7 +136,6 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
         videoRef.current.srcObject = stream;
       }
       
-      // Detect supported MIME type for audio
       const mimeType = [
         'audio/webm;codecs=opus',
         'audio/webm',
@@ -136,7 +144,6 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
         ''
       ].find(type => type === '' || MediaRecorder.isTypeSupported(type));
 
-      // Create a separate stream for audio recording to avoid issues with video tracks
       const audioStream = new MediaStream(stream.getAudioTracks());
       const mediaRecorder = new MediaRecorder(audioStream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
@@ -155,7 +162,7 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           const base64Audio = (reader.result as string).split(',')[1];
-          socket?.emit('user-answer', { roomId, audio: base64Audio });
+          socketRef.current?.emit('user-answer', { roomId, audio: base64Audio });
         };
         audioChunksRef.current = [];
       };
@@ -166,7 +173,11 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
   };
 
   const joinInterview = () => {
-    socket?.emit('join-interview', { 
+    if (!socketRef.current) {
+      console.error("Socket not connected");
+      return;
+    }
+    socketRef.current.emit('join-interview', { 
       roomId, 
       userId: userId || ('user-' + Math.random()),
       topic,
@@ -199,395 +210,426 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
       }
     } catch (err) {
       console.error("Error toggling recorder:", err);
-      // Attempt to recover state
       setIsRecording(false);
     }
-  };
-
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-    const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-    return `${minutes}:${seconds}`;
   };
 
   const completion = Math.min((elapsedSeconds / (parseInt(duration, 10) * 60 || 1)) * 100, 100);
 
   return (
-    <div className="flex flex-col h-screen text-[#f6f8ff] font-outfit overflow-hidden pt-20">
-      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative p-4 gap-4">
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-35" />
-        <div className="absolute -top-20 left-1/3 h-72 w-72 rounded-full bg-cyan-400/20 blur-[130px] animate-float-slow" />
-        <div className="absolute -bottom-20 right-8 h-80 w-80 rounded-full bg-indigo-500/20 blur-[140px] animate-float-slow" />
+    <div className="flex flex-col h-screen text-foreground font-outfit overflow-hidden pt-24 selection:bg-accent/30 relative">
+      {/* Cinematic Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-[url('/images/hero-light.png')] dark:bg-[url('/images/hero-dark.png')] bg-cover bg-center transition-all duration-1000 scale-110 brightness-95 dark:brightness-50 blur-xl" />
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-md" />
+      </div>
 
-        <div className="flex-1 flex flex-col relative z-10">
-          <div className="flex-1 rounded-2xl bg-slate-900/65 border border-white/15 overflow-hidden relative shadow-2xl flex items-center justify-center aurora-outline">
-            
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              muted 
-              className={`w-full h-full object-cover transition-opacity duration-700 ${videoOn ? 'opacity-100' : 'opacity-0'}`} 
-            />
-            
-            {!videoOn && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90">
-                <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mb-4">
-                  <VideoOff size={32} className="text-slate-500" />
-                </div>
-                <span className="text-sm font-medium text-slate-400">Camera Disabled</span>
-              </div>
-            )}
-            
-            <div className="absolute top-4 left-4 flex gap-2">
-              {isRecording && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/15 backdrop-blur-md rounded-lg border border-red-300/30">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-xs font-semibold text-red-200 uppercase tracking-widest">Recording</span>
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 p-6 gap-6">
+        {/* Main Interaction Area */}
+        <div className="flex-1 flex flex-col gap-6">
+          <div className="flex-1 rounded-[2.5rem] glass-card overflow-hidden relative shadow-3xl flex items-center justify-center p-1">
+            <div className="relative w-full h-full rounded-[2.2rem] overflow-hidden bg-background/20">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                muted 
+                className={`w-full h-full object-cover transition-opacity duration-1000 ${videoOn ? 'opacity-100' : 'opacity-0'}`} 
+              />
+              
+              {!videoOn && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-xl">
+                  <div className="w-24 h-24 rounded-3xl bg-foreground/[0.03] border border-foreground/5 flex items-center justify-center mb-6">
+                    <VideoOff size={32} className="text-foreground/40 dark:text-foreground/20" />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">Camera Disabled</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950/60 backdrop-blur-md rounded-lg border border-white/15">
-                <ShieldCheck size={14} className="text-emerald-400" />
-                <span className="text-xs font-medium text-slate-200">E2E Encrypted</span>
-              </div>
-            </div>
-            <div className="absolute top-4 right-4 rounded-xl border border-white/20 bg-slate-900/65 backdrop-blur-md px-3 py-2 min-w-40">
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-300/80 mb-1">
-                <span>Session progress</span>
-                <span>{Math.round(completion)}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/15 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-cyan-300 to-fuchsia-300 transition-all duration-700" style={{ width: `${completion}%` }} />
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 left-4">
-              <div className="px-3 py-1.5 bg-slate-950/60 backdrop-blur-md rounded-lg border border-white/15 flex items-center gap-2">
-                 <Activity size={14} className={audioOn ? "text-blue-400" : "text-neutral-500"} />
-                 <span className="text-xs font-medium text-slate-200">{audioOn ? 'Audio capturing' : 'Muted'}</span>
-              </div>
-            </div>
-
-            {!isJoined && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm"
-              >
-                <div className="glass-panel p-8 rounded-3xl max-w-md w-full text-center shadow-2xl aurora-outline">
-                  <div className="w-16 h-16 bg-blue-500/10 border border-blue-300/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Video size={28} className="text-blue-400" />
-                  </div>
-                  <h2 className="text-2xl font-semibold mb-2">Ready to join?</h2>
-                  <p className="text-slate-300 text-sm mb-8">
-                    Your camera and microphone settings have been configured. The AI is ready to begin.
-                  </p>
-                  <button 
-                    onClick={joinInterview}
-                    className="w-full py-3.5 bg-gradient-to-r from-cyan-300 via-blue-300 to-fuchsia-300 text-slate-900 rounded-xl font-semibold text-sm transition-all hover:brightness-105 active:scale-95"
+              
+              <div className="absolute top-6 left-6 flex gap-3">
+                {isRecording && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2.5 px-4 py-2 bg-red-500/10 backdrop-blur-md rounded-full border border-red-500/20"
                   >
-                    Join Session
-                  </button>
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.5)]" />
+                    <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Recording</span>
+                  </motion.div>
+                )}
+                <div className="flex items-center gap-2.5 px-4 py-2 bg-background/40 backdrop-blur-md rounded-full border border-foreground/5">
+                  <ShieldCheck size={14} className="text-accent" />
+                  <span className="text-[10px] font-bold text-foreground/80 dark:text-foreground/60 uppercase tracking-widest">E2E Encrypted</span>
                 </div>
-              </motion.div>
-            )}
+              </div>
+
+              <div className="absolute top-6 right-6 rounded-2xl glass-card p-4 min-w-48 bg-background/40 backdrop-blur-xl border-foreground/5">
+                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-foreground/60 dark:text-foreground/40 mb-2">
+                  <span>Session progress</span>
+                  <span>{Math.round(completion)}%</span>
+                </div>
+                <div className="h-1 rounded-full bg-foreground/5 overflow-hidden">
+                  <div className="h-full bg-accent transition-all duration-1000 ease-out" style={{ width: `${completion}%` }} />
+                </div>
+              </div>
+
+              <div className="absolute bottom-6 left-6">
+                <div className="px-4 py-2 bg-background/40 backdrop-blur-md rounded-full border border-foreground/5 flex items-center gap-2.5">
+                   <Activity size={14} className={audioOn ? "text-accent" : "text-foreground/40 dark:text-foreground/20"} />
+                   <span className="text-[10px] font-bold text-foreground/80 dark:text-foreground/60 uppercase tracking-widest">{audioOn ? 'Audio capturing' : 'Muted'}</span>
+                </div>
+              </div>
+
+              {!isJoined && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 z-30 flex items-center justify-center bg-background/60 backdrop-blur-xl"
+                >
+                  <div className="glass-card p-12 rounded-[3rem] max-w-md w-full text-center shadow-3xl">
+                    <div className="w-20 h-20 bg-accent text-background rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-accent/20">
+                      <Video size={32} />
+                    </div>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-4">Ready to join?</h2>
+                    <p className="text-foreground/70 dark:text-foreground/50 text-sm font-medium mb-10 leading-relaxed">
+                      Your camera and microphone settings have been configured. The AI is ready to begin.
+                    </p>
+                    <button 
+                      onClick={joinInterview}
+                      className="w-full py-5 bg-accent text-background rounded-2xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-[1.02] active:scale-[0.98] shadow-2xl shadow-accent/20"
+                    >
+                      Join Session
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </div>
 
-          <div className="h-20 mt-4 bg-slate-900/55 border border-white/15 rounded-2xl flex items-center justify-between gap-4 px-6 z-10 shadow-lg backdrop-blur-xl">
-            <div className="hidden md:flex items-center gap-3">
+          {/* Controls Bar */}
+          <div className="h-24 glass-card rounded-[2rem] flex items-center justify-between gap-6 px-10 shadow-2xl">
+            <div className="hidden md:flex items-center gap-6">
               <button
                 onClick={() => setFocusMode(!focusMode)}
-                className={`h-10 rounded-xl px-3 text-xs border transition-colors ${
-                  focusMode ? "bg-cyan-300/20 border-cyan-200/40 text-cyan-100" : "bg-white/[0.08] border-white/20 text-slate-200"
+                className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  focusMode ? "text-accent" : "text-foreground/60 dark:text-foreground/40 hover:text-foreground"
                 }`}
               >
+                <Zap size={14} fill={focusMode ? "currentColor" : "none"} />
                 Focus mode {focusMode ? "on" : "off"}
               </button>
-              <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.08] px-3 py-2 text-xs text-slate-200">
-                <Gauge size={14} className="text-fuchsia-200" />
-                Confidence {Math.max(58, Math.min(96, 68 + transcript.length * 3))}%
+              <div className="h-4 w-px bg-foreground/10" />
+              <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                <Gauge size={14} className="text-accent" />
+                Confidence: <span className="text-foreground font-black">{Math.max(58, Math.min(96, 68 + transcript.length * 3))}%</span>
               </div>
             </div>
+
             <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setAudioOn(!audioOn)}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border ${
-                audioOn 
-                  ? 'bg-white/[0.14] border-white/20 text-slate-100 hover:bg-white/[0.18]' 
-                  : 'bg-red-500/15 border-red-300/30 text-red-200'
-              }`}
-            >
-              {audioOn ? <Mic size={20} /> : <MicOff size={20} />}
-            </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setAudioOn(!audioOn)}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all border ${
+                    audioOn 
+                      ? 'bg-foreground/[0.03] border-foreground/5 text-foreground hover:bg-foreground/[0.06]' 
+                      : 'bg-red-500/10 border-red-500/20 text-red-500'
+                  }`}
+                >
+                  {audioOn ? <Mic size={20} /> : <MicOff size={20} />}
+                </button>
+                <button 
+                  onClick={() => setVideoOn(!videoOn)}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all border ${
+                    videoOn 
+                      ? 'bg-foreground/[0.03] border-foreground/5 text-foreground hover:bg-foreground/[0.06]' 
+                      : 'bg-red-500/10 border-red-500/20 text-red-500'
+                  }`}
+                >
+                  {videoOn ? <Video size={20} /> : <VideoOff size={20} />}
+                </button>
+              </div>
 
-            <button 
-              onClick={toggleRecording}
-              disabled={!isJoined}
-              className={`relative h-12 px-8 rounded-xl font-semibold text-sm transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isRecording 
-                  ? 'bg-red-500/15 border border-red-300/40 text-red-100 hover:bg-red-500/20' 
-                  : 'bg-gradient-to-r from-cyan-300 via-blue-300 to-fuchsia-300 text-slate-900 hover:brightness-105 shadow-[0_8px_26px_rgba(56,189,248,0.3)]'
-              }`}
-            >
-              {isRecording ? (
-                <>
-                  <div className="w-2 h-2 rounded-sm bg-red-400" />
-                  Stop Answering
-                </>
-              ) : (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-black" />
-                  Start Answering
-                </>
-              )}
-            </button>
+              <div className="h-4 w-px bg-foreground/10 mx-2" />
 
-            {isJoined && (
               <button 
-                onClick={endInterview}
-                className="h-12 px-5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-red-500/15 border border-red-300/30 text-red-200 hover:bg-red-500/25 active:scale-95 shadow-[0_4px_12px_rgba(239,68,68,0.15)]"
+                onClick={toggleRecording}
+                disabled={!isJoined}
+                className={`relative h-14 px-10 rounded-2xl font-bold text-[13px] tracking-widest uppercase transition-all flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isRecording 
+                    ? 'bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 shadow-lg shadow-red-500/10' 
+                    : 'bg-accent text-background hover:scale-[1.02] shadow-2xl shadow-accent/20'
+                }`}
               >
-                End Interview
+                {isRecording ? (
+                  <>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-red-500 animate-pulse" />
+                    Stop Answering
+                  </>
+                ) : (
+                  <>
+                    <div className="w-2.5 h-2.5 rounded-full bg-background" />
+                    Start Answering
+                  </>
+                )}
               </button>
-            )}
 
-            <button 
-              onClick={() => setVideoOn(!videoOn)}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border ${
-                videoOn 
-                  ? 'bg-white/[0.14] border-white/20 text-slate-100 hover:bg-white/[0.18]' 
-                  : 'bg-red-500/15 border-red-300/30 text-red-200'
-              }`}
-            >
-              {videoOn ? <Video size={20} /> : <VideoOff size={20} />}
-            </button>
+              {isJoined && (
+                <button 
+                  onClick={endInterview}
+                  className="h-14 px-6 rounded-2xl font-bold text-[11px] tracking-widest uppercase transition-all bg-foreground/[0.03] border border-foreground/5 text-foreground/60 dark:text-foreground/40 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 active:scale-95"
+                >
+                  End Interview
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        <aside className="w-full lg:w-[410px] flex flex-col bg-slate-900/55 border border-white/15 rounded-2xl z-10 shadow-lg overflow-hidden backdrop-blur-xl">
-          <div className="p-5 border-b border-white/15 bg-white/[0.08]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-300/30 flex items-center justify-center">
-                <AlignLeft size={16} className="text-indigo-200" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-sm text-slate-100">Analysis & Transcript</h2>
-                <p className="text-xs text-slate-400">Real-time AI processing</p>
+        {/* Sidebar - Transcript & Intelligence */}
+        <aside className="w-full lg:w-[440px] flex flex-col glass-card rounded-[2.5rem] shadow-2xl overflow-hidden">
+          <div className="p-8 border-b border-foreground/5 bg-foreground/[0.02]">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-accent text-background flex items-center justify-center shadow-lg shadow-accent/20">
+                  <Brain size={20} />
+                </div>
+                <div>
+                  <h2 className="font-bold text-foreground text-lg tracking-tight">Analysis & Transcript</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/50 dark:text-foreground/30 italic serif">Real-time AI processing</p>
+                </div>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-white/20 bg-white/[0.08] p-2 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-slate-300/70">Turns</p>
-                <p className="text-sm font-semibold text-white">{transcript.length}</p>
-              </div>
-              <div className="rounded-lg border border-white/20 bg-white/[0.08] p-2 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-slate-300/70">AI State</p>
-                <p className="text-sm font-semibold text-cyan-100">Active</p>
-              </div>
-              <div className="rounded-lg border border-white/20 bg-white/[0.08] p-2 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-slate-300/70">Pacing</p>
-                <p className="text-sm font-semibold text-fuchsia-100">{isRecording ? "Live" : "Paused"}</p>
-              </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Turns', val: transcript.length },
+                { label: 'AI State', val: 'Active', color: 'text-accent' },
+                { label: 'Pacing', val: isRecording ? "Live" : "Paused" }
+              ].map((s) => (
+                <div key={s.label} className="rounded-2xl bg-foreground/[0.03] border border-foreground/5 p-4 text-center group hover:bg-foreground/[0.06] transition-colors">
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-foreground/40 dark:text-foreground/20 mb-1">{s.label}</p>
+                  <p className={`text-xs font-bold ${s.color || 'text-foreground'}`}>{s.val}</p>
+                </div>
+              ))}
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-5 space-y-6 aurora-scroll">
+          <div className="flex-1 overflow-y-auto p-8 space-y-10 aurora-scroll scrollbar-hide">
             <AnimatePresence initial={false}>
               {transcript.map((m, i) => (
                 <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={i} 
                   className={`flex flex-col ${m.role === 'ai' ? 'items-start' : 'items-end'}`}
                 >
-                  <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1 px-1">
+                  <div className="text-[9px] font-black text-foreground/40 dark:text-foreground/20 uppercase tracking-[0.25em] mb-3 px-1">
                     {m.role === 'ai' ? 'Interviewer' : 'You'}
                   </div>
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
+                  <div className={`max-w-[90%] p-6 rounded-[2rem] text-[15px] font-medium leading-relaxed ${
                     m.role === 'ai' 
-                      ? 'bg-white/[0.07] border border-white/15 text-slate-100 rounded-tl-sm' 
-                      : 'bg-blue-600/25 border border-blue-300/30 text-blue-100 rounded-tr-sm'
+                      ? 'bg-foreground/[0.03] border border-foreground/5 text-foreground rounded-tl-none' 
+                      : 'bg-accent/10 border border-accent/20 text-foreground rounded-tr-none'
                   }`}>
                     {m.text}
                   </div>
                 </motion.div>
               ))}
               {transcript.length === 0 && isJoined && (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-3">
-                  <Activity size={24} className="opacity-50" />
-                  <p className="text-sm">Session started. The AI will speak shortly.</p>
+                <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-6">
+                  <div className="w-16 h-16 rounded-3xl bg-foreground/[0.02] border border-foreground/5 flex items-center justify-center animate-pulse">
+                    <Activity size={24} className="text-foreground/10" />
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-foreground/40 dark:text-foreground/20">Session started. The AI will speak shortly.</p>
                 </div>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="p-5 bg-white/[0.08] border-t border-white/15 space-y-3">
-            {liveTranscript ? (
-              <div className="flex items-start gap-3">
-                <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse flex-shrink-0" />
-                <p className="text-xs text-slate-300 leading-relaxed italic">
-                  {liveTranscript}
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 text-slate-500">
-                <Mic size={14} />
-                <p className="text-xs font-medium">Listening for response...</p>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <button className="rounded-lg border border-white/20 bg-white/[0.08] px-3 py-2 text-xs text-slate-100 hover:bg-white/[0.14] transition-colors inline-flex items-center justify-center gap-1.5">
-                <Bot size={13} /> Ask Hint
+          <div className="p-8 bg-foreground/[0.02] border-t border-foreground/5 space-y-6">
+            <div className="min-h-[40px]">
+              {liveTranscript ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-start gap-4"
+                >
+                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)]" />
+                  <p className="text-[13px] text-foreground/80 dark:text-foreground/60 leading-relaxed font-medium italic">
+                    {liveTranscript}
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="flex items-center gap-3 text-foreground/40 dark:text-foreground/20">
+                  <Mic size={14} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Listening for response...</p>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="h-12 rounded-2xl border border-foreground/5 bg-foreground/[0.03] text-[11px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40 hover:bg-accent hover:text-background hover:border-accent transition-all duration-300 flex items-center justify-center gap-3">
+                <Bot size={16} /> Ask Hint
               </button>
-              <button className="rounded-lg border border-white/20 bg-white/[0.08] px-3 py-2 text-xs text-slate-100 hover:bg-white/[0.14] transition-colors inline-flex items-center justify-center gap-1.5">
-                <CirclePause size={13} /> Pause AI
+              <button className="h-12 rounded-2xl border border-foreground/5 bg-foreground/[0.03] text-[11px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40 hover:bg-accent hover:text-background hover:border-accent transition-all duration-300 flex items-center justify-center gap-3">
+                <CirclePause size={16} /> Pause AI
               </button>
             </div>
           </div>
         </aside>
       </main>
 
-      {isCompleted && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 md:p-8"
-        >
+      {/* Evaluation Result Layer */}
+      <AnimatePresence>
+        {isCompleted && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-            className="max-w-4xl w-full bg-slate-900/85 border border-white/15 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl aurora-outline my-auto animate-fade-in"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-3xl overflow-y-auto p-6"
           >
-            {/* Background glow effects */}
-            <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full bg-cyan-400/15 blur-[120px] pointer-events-none" />
-            <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-fuchsia-500/15 blur-[120px] pointer-events-none" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="max-w-5xl w-full glass-card rounded-[4rem] p-1 shadow-3xl overflow-hidden"
+            >
+              <div className="bg-background/40 p-12 md:p-20 relative">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent/10 blur-[120px] rounded-full -translate-x-1/2 translate-y-1/2" />
 
-            <header className="text-center mb-8 relative">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-cyan-400/10 to-fuchsia-400/10 border border-cyan-300/30 rounded-full text-cyan-200 text-xs font-semibold tracking-wide mb-4">
-                <ShieldCheck size={14} className="text-cyan-300" />
-                <span>Interview Evaluation Completed</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-semibold bg-gradient-to-r from-cyan-300 via-blue-200 to-fuchsia-300 bg-clip-text text-transparent pb-1">
-                Performance Summary
-              </h2>
-              <p className="text-slate-300 mt-2 text-sm md:text-base font-light">
-                Review your technical score, personalized feedback, and recommendations below.
-              </p>
-            </header>
-
-            {isGeneratingFeedback ? (
-              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <div className="relative w-20 h-20">
-                  <div className="absolute inset-0 rounded-full border-4 border-white/5" />
-                  <div className="absolute inset-0 rounded-full border-4 border-t-cyan-300 border-r-fuchsia-300 animate-spin" />
-                </div>
-                <p className="text-sm font-semibold text-slate-200 uppercase tracking-widest animate-pulse">
-                  AI is synthesizing feedback...
-                </p>
-                <p className="text-xs text-slate-400">Evaluating technical responses, pacing, and vocabulary</p>
-              </div>
-            ) : feedback ? (
-              <div className="space-y-8 relative">
-                {/* Score and Pacing Row */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-                  {/* Score Circle Card */}
-                  <div className="md:col-span-5 bg-white/[0.04] border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-300/5 to-fuchsia-300/5 opacity-50" />
-                    <div className="relative w-32 h-32 flex items-center justify-center mb-4">
-                      <div className="absolute inset-0 rounded-full border border-dashed border-white/10 animate-spin" style={{ animationDuration: '20s' }} />
-                      <div className="absolute inset-2 rounded-full border border-cyan-300/20" />
-                      <div className="absolute inset-4 rounded-full bg-slate-950/80 flex flex-col items-center justify-center border border-white/10 shadow-inner">
-                        <span className="text-4xl font-bold bg-gradient-to-r from-cyan-300 to-fuchsia-300 bg-clip-text text-transparent">
-                          {feedback.overallScore}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Out of 100</span>
-                      </div>
-                    </div>
-                    <h3 className="font-semibold text-white text-base">Overall Score</h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-[200px]">Based on technical correctness and communication quality.</p>
+                <header className="text-center mb-20 relative">
+                  <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-accent/5 border border-accent/10 text-accent text-[11px] font-bold uppercase tracking-[0.2em] mb-8">
+                    <ShieldCheck size={16} />
+                    Interview Evaluation Completed
                   </div>
+                  <h2 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground mb-6">
+                    Performance Summary <br />
+                    <span className="opacity-60 dark:opacity-40 italic serif text-foreground">Synthesis Complete.</span>
+                  </h2>
+                  <p className="text-foreground/70 dark:text-foreground/50 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                    Review your technical score, personalized feedback, and recommendations below.
+                  </p>
+                </header>
 
-                  {/* Stats and Highlights */}
-                  <div className="md:col-span-7 flex flex-col justify-between gap-4">
-                    <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6 flex-1">
-                      <h3 className="font-semibold text-slate-200 text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <Gauge size={16} className="text-cyan-300" /> Executive Summary
-                      </h3>
-                      <p className="text-sm text-slate-300 leading-relaxed font-light">
-                        {feedback.summary}
+                {isGeneratingFeedback ? (
+                  <div className="flex flex-col items-center justify-center py-20 space-y-10">
+                    <div className="relative w-24 h-24">
+                      <div className="absolute inset-0 rounded-full border-[6px] border-foreground/[0.03]" />
+                      <div className="absolute inset-0 rounded-full border-[6px] border-t-accent animate-spin" />
+                    </div>
+                    <div className="text-center space-y-3">
+                      <p className="text-xs font-bold text-accent uppercase tracking-[0.4em] animate-pulse">
+                        AI is synthesizing feedback...
                       </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400">Response Pacing</p>
-                        <p className="text-lg font-semibold text-cyan-200 mt-1">{feedback.pacing}</p>
-                      </div>
-                      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400">Turns Completed</p>
-                        <p className="text-lg font-semibold text-fuchsia-200 mt-1">{transcript.length}</p>
-                      </div>
+                      <p className="text-[10px] text-foreground/50 dark:text-foreground/30 font-bold uppercase tracking-widest">Evaluating technical responses, pacing, and vocabulary</p>
                     </div>
                   </div>
-                </div>
+                ) : feedback ? (
+                  <div className="space-y-16 relative">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-stretch">
+                      {/* Score Sphere */}
+                      <div className="md:col-span-5 glass-card rounded-[3rem] p-12 flex flex-col items-center justify-center text-center relative group">
+                        <div className="relative w-48 h-48 flex items-center justify-center mb-10">
+                          <div className="absolute inset-0 rounded-full border border-accent/10 animate-spin-slow" />
+                          <div className="absolute inset-4 rounded-full border border-accent/20" />
+                          <div className="absolute inset-8 rounded-full bg-background flex flex-col items-center justify-center border border-foreground/5 shadow-2xl">
+                            <span className="text-7xl font-black text-foreground tracking-tighter">
+                              {feedback.overallScore}
+                            </span>
+                            <span className="text-[10px] uppercase font-black tracking-[0.3em] text-foreground/40 dark:text-foreground/20">Out of 100</span>
+                          </div>
+                        </div>
+                        <h3 className="text-2xl font-bold text-foreground mb-3">Overall Score</h3>
+                        <p className="text-[11px] font-bold text-foreground/60 dark:text-foreground/40 uppercase tracking-widest leading-relaxed">Based on technical correctness and communication quality.</p>
+                      </div>
 
-                {/* Strengths and Improvements */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Strengths */}
-                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6">
-                    <h4 className="font-semibold text-emerald-300 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" /> Key Strengths
-                    </h4>
-                    <ul className="space-y-3">
-                      {feedback.strengths?.map((strength: string, idx: number) => (
-                        <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
-                          <span className="text-emerald-400 font-bold">•</span>
-                          <span>{strength}</span>
-                        </li>
-                      ))}
-                    </ul>
+                      {/* Summary */}
+                      <div className="md:col-span-7 flex flex-col gap-8">
+                        <div className="glass-card rounded-[3rem] p-10 flex-1 relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
+                            <Activity size={32} className="text-accent" />
+                          </div>
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground/50 dark:text-foreground/30 mb-8 flex items-center gap-4">
+                            Executive Summary
+                            <div className="h-px flex-1 bg-foreground/5" />
+                          </h3>
+                          <p className="text-xl text-foreground font-medium leading-relaxed italic serif opacity-80">
+                            "{feedback.summary}"
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-8">
+                          <div className="glass-card rounded-[2.5rem] p-8 text-center border-accent/10">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-foreground/50 dark:text-foreground/30 mb-2">Response Pacing</p>
+                            <p className="text-xl font-bold text-foreground tracking-tight">{feedback.pacing}</p>
+                          </div>
+                          <div className="glass-card rounded-[2.5rem] p-8 text-center border-accent/10">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-foreground/50 dark:text-foreground/30 mb-2">Turns Completed</p>
+                            <p className="text-xl font-bold text-foreground tracking-tight">{transcript.length}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Feedback Pillars */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                      <div className="glass-card rounded-[3rem] p-12 border-accent/5">
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground/50 dark:text-foreground/30 mb-10 flex items-center gap-4">
+                          Key Strengths
+                          <div className="h-px flex-1 bg-foreground/5" />
+                        </h4>
+                        <ul className="space-y-6">
+                          {feedback.strengths?.map((strength: string, idx: number) => (
+                            <li key={idx} className="text-[15px] font-bold text-foreground flex items-start gap-4">
+                              <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)]" />
+                              <span>{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="glass-card rounded-[3rem] p-12 border-foreground/10 bg-foreground/[0.01]">
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground/50 dark:text-foreground/30 mb-10 flex items-center gap-4">
+                          Areas of Focus
+                          <div className="h-px flex-1 bg-foreground/5" />
+                        </h4>
+                        <ul className="space-y-6">
+                          {feedback.improvements?.map((imp: string, idx: number) => (
+                            <li key={idx} className="text-[15px] font-bold text-foreground/60 dark:text-foreground/40 flex items-start gap-4">
+                              <div className="w-1.5 h-1.5 rounded-full bg-foreground/20 mt-2" />
+                              <span>{imp}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="pt-10 flex flex-col md:flex-row justify-center gap-6">
+                      <button 
+                        onClick={() => window.location.reload()}
+                        className="px-12 py-6 bg-accent text-background rounded-full font-bold text-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-3xl shadow-accent/20"
+                      >
+                        Start New Session
+                      </button>
+                      <button className="px-12 py-6 bg-foreground/[0.03] border border-foreground/5 text-foreground rounded-full font-bold text-xl hover:bg-foreground/[0.06] transition-all">
+                        Archive Result
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Areas for Improvement */}
-                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6">
-                    <h4 className="font-semibold text-amber-300 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-400" /> Areas of Focus
-                    </h4>
-                    <ul className="space-y-3">
-                      {feedback.improvements?.map((imp: string, idx: number) => (
-                        <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
-                          <span className="text-amber-400 font-bold">•</span>
-                          <span>{imp}</span>
-                        </li>
-                      ))}
-                    </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 space-y-8">
+                    <p className="text-xl font-medium text-foreground/60 dark:text-foreground/40">Evaluation retrieval failed. Neural link timeout.</p>
+                    <button 
+                      onClick={() => window.location.reload()}
+                      className="px-10 py-4 bg-accent text-background rounded-full font-bold text-sm hover:scale-105 transition-all"
+                    >
+                      Restart Anytime
+                    </button>
                   </div>
-                </div>
-
-                <div className="pt-4 flex justify-center gap-4">
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="px-8 py-3.5 bg-gradient-to-r from-cyan-300 via-blue-300 to-fuchsia-300 text-slate-900 rounded-xl font-semibold text-sm transition-all hover:brightness-105 active:scale-95 shadow-lg"
-                  >
-                    Start New Session
-                  </button>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <p className="text-sm text-slate-300">Could not retrieve feedback. Don't worry, you can restart anytime.</p>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="px-6 py-2.5 bg-white/10 border border-white/20 text-white rounded-lg text-sm hover:bg-white/15"
-                >
-                  Restart
-                </button>
-              </div>
-            )}
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

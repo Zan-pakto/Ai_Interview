@@ -50,7 +50,7 @@ export default function HomeClient({ initialUser }: HomeClientProps) {
   };
 
   return (
-    <main className="min-h-screen bg-neutral-50 dark:bg-black font-outfit">
+    <main className="min-h-screen bg-background font-outfit">
       <Navbar 
         user={user} 
         onStart={handleStartSetup} 

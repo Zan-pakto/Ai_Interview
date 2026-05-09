@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Target, Clock, Rocket, Sparkles, ChevronRight, WandSparkles, Brain, Gauge } from 'lucide-react';
-
+import { BookOpen, Target, Clock, Rocket, Sparkles, ChevronRight, WandSparkles, Brain, Gauge, Activity } from 'lucide-react';
 import { createSessionAction } from '@/actions/interview.actions';
 
 interface SetupViewProps {
@@ -34,47 +33,47 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
   };
 
   return (
-    <div className="min-h-screen text-[#f8faff] flex items-center justify-center pt-24 pb-6 px-6 relative overflow-hidden font-outfit">
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] opacity-40" />
-      <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full bg-cyan-400/20 blur-[120px] animate-float-slow" />
-      <div className="absolute -bottom-28 right-0 h-[22rem] w-[22rem] rounded-full bg-indigo-500/20 blur-[140px] animate-float-slow" />
-      <div className="absolute top-1/3 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-fuchsia-500/20 blur-[130px] animate-float-slow" />
+    <div className="min-h-screen relative flex items-center justify-center pt-32 pb-12 px-6 selection:bg-accent/30 overflow-hidden">
+      {/* Cinematic Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-[url('/images/hero-light.png')] dark:bg-[url('/images/hero-dark.png')] bg-cover bg-center transition-all duration-1000 scale-110 brightness-95 dark:brightness-50 blur-xl" />
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-md" />
+      </div>
 
-      <div className="relative z-10 max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+      <div className="relative z-10 max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-center">
+        {/* Left Content - Editorial Info */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="lg:col-span-5 space-y-10"
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1, ease: [0.2, 0.8, 0.2, 1] }}
+          className="lg:col-span-5 space-y-12"
         >
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-cyan-200 text-xs font-semibold tracking-wide backdrop-blur-md">
-              <Sparkles size={14} className="text-blue-400" /> 
-              <span>Aura Engine V3 Live</span>
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/5 border border-accent/10 backdrop-blur-md text-accent text-[11px] font-bold tracking-[0.2em] uppercase">
+              <Sparkles size={12} />
+              Session Configuration
             </div>
-            <h1 className="text-5xl lg:text-7xl font-semibold leading-[1.02] tracking-tight text-white">
-              Interview Prep, <br />
-              <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-fuchsia-300 bg-clip-text text-transparent">
-                Cinematic Edition.
-              </span>
+            <h1 className="text-5xl lg:text-7xl font-bold leading-[0.95] tracking-tight text-foreground">
+              Configure Your <br />
+              <span className="opacity-60 dark:opacity-40 italic serif">Experience.</span>
             </h1>
-            <p className="text-slate-200/95 text-lg leading-relaxed max-w-md font-light">
-              Walk into every interview with confidence. Build a realistic AI session with dynamic prompts, adaptive pressure, and instant voice feedback.
+            <p className="text-foreground/80 dark:text-foreground/60 text-xl font-medium leading-relaxed max-w-md">
+              Walk into every interview with unshakeable confidence. Aura synchronizes with your specific career objectives.
             </p>
           </div>
 
-          <div className="glass-panel rounded-2xl p-4">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-200/70 mb-3">
-              <WandSparkles size={14} className="text-cyan-300" />
+          <div className="glass-card rounded-[2.5rem] p-8 space-y-6">
+            <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+              <WandSparkles size={16} className="text-accent" />
               Quick Start Templates
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {quickTopics.map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setTopic(item)}
-                  className="rounded-full border border-white/20 bg-white/[0.10] px-3 py-1.5 text-xs text-slate-100 hover:bg-white/[0.16] transition-colors"
+                  className="px-5 py-2.5 rounded-full border border-foreground/5 bg-foreground/[0.03] text-[13px] font-bold text-foreground/80 dark:text-foreground/60 hover:bg-accent hover:text-background hover:border-accent transition-all duration-300 active:scale-95"
                 >
                   {item}
                 </button>
@@ -82,107 +81,107 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-5 rounded-2xl glass-panel transition-colors hover:bg-white/[0.12]">
-              <div className="text-3xl font-medium text-white mb-1">12k+</div>
-              <div className="text-xs text-slate-300/60 font-medium uppercase tracking-widest">Sessions Simulated</div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="p-8 rounded-[2.5rem] glass-card transition-all hover:bg-background/40">
+              <div className="text-4xl font-bold text-foreground mb-2 tracking-tighter">12k+</div>
+              <div className="text-[10px] text-foreground/60 dark:text-foreground/40 font-bold uppercase tracking-[0.2em]">Global Professionals</div>
             </div>
-            <div className="p-5 rounded-2xl glass-panel transition-colors hover:bg-white/[0.12]">
-              <div className="text-3xl font-medium text-white mb-1">99.9%</div>
-              <div className="text-xs text-slate-300/60 font-medium uppercase tracking-widest">Realtime Uptime</div>
+            <div className="p-8 rounded-[2.5rem] glass-card transition-all hover:bg-background/40">
+              <div className="text-4xl font-bold text-foreground mb-2 tracking-tighter">99.9%</div>
+              <div className="text-[10px] text-foreground/60 dark:text-foreground/40 font-bold uppercase tracking-[0.2em]">Real-time Uptime</div>
             </div>
           </div>
         </motion.div>
 
+        {/* Right Content - The Form */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          transition={{ duration: 1, delay: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
           className="lg:col-span-7"
         >
-          <div className="relative aurora-outline rounded-3xl">
-            
+          <div className="glass-card rounded-[3.5rem] p-1 shadow-3xl">
             <form 
               onSubmit={handleSubmit}
-              className="relative rounded-3xl p-8 lg:p-12 shadow-2xl glass-panel bg-white/[0.08]"
+              className="relative rounded-[3.2rem] p-10 lg:p-14 bg-background/40"
             >
-              <div className="space-y-8">
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300/70 uppercase tracking-wider">
-                    <BookOpen size={16} className="text-blue-400" /> Focus Area
+              <div className="space-y-10">
+                <div className="space-y-4">
+                  <label className="flex items-center gap-3 text-[10px] font-bold text-foreground/60 dark:text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                    <BookOpen size={16} className="text-accent" /> Focus Area
                   </label>
                   <input 
                     type="text"
                     placeholder="e.g. Senior Frontend Engineer, System Design"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-white/20 rounded-2xl px-5 py-4 text-white placeholder:text-slate-400 focus:outline-none focus:border-cyan-300/70 focus:ring-2 focus:ring-cyan-300/30 transition-all font-light"
+                    className="w-full bg-foreground/[0.03] border border-foreground/5 rounded-2xl px-6 py-5 text-foreground placeholder:text-foreground/40 dark:text-foreground/20 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all font-bold text-lg"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-300/70 uppercase tracking-wider">
-                      <Target size={16} className="text-fuchsia-300" /> Difficulty
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-4">
+                    <label className="flex items-center gap-3 text-[10px] font-bold text-foreground/60 dark:text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                      <Target size={16} className="text-accent" /> Difficulty
                     </label>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-3">
                       {["Junior", "Mid-level", "Senior"].map((level) => (
                         <button
                           key={level}
                           type="button"
                           onClick={() => setDifficulty(level)}
-                          className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                          className={`flex items-center justify-between px-5 py-4 rounded-2xl text-[13px] font-bold transition-all duration-300 border ${
                             difficulty === level 
-                              ? 'bg-fuchsia-400/20 border-fuchsia-200/45 text-white shadow-[0_0_24px_rgba(192,132,252,0.3)]' 
-                              : 'bg-slate-900/45 border-white/15 text-slate-200 hover:border-white/30 hover:text-white'
+                              ? 'bg-accent text-background border-accent shadow-xl shadow-accent/20' 
+                              : 'bg-foreground/[0.03] border-foreground/5 text-foreground/60 dark:text-foreground/40 hover:bg-foreground/[0.06]'
                           }`}
                         >
                           {level}
-                          {difficulty === level && <div className="w-2 h-2 rounded-full bg-fuchsia-300"></div>}
+                          {difficulty === level && <div className="w-1.5 h-1.5 rounded-full bg-background"></div>}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-300/70 uppercase tracking-wider">
-                      <Clock size={16} className="text-cyan-300" /> Duration
+                  <div className="space-y-4">
+                    <label className="flex items-center gap-3 text-[10px] font-bold text-foreground/60 dark:text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                      <Clock size={16} className="text-accent" /> Duration
                     </label>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-3">
                       {["15 min", "30 min", "45 min"].map((time) => (
                         <button
                           key={time}
                           type="button"
                           onClick={() => setDuration(time)}
-                          className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                          className={`flex items-center justify-between px-5 py-4 rounded-2xl text-[13px] font-bold transition-all duration-300 border ${
                             duration === time 
-                              ? 'bg-cyan-400/20 border-cyan-200/45 text-white shadow-[0_0_24px_rgba(56,189,248,0.3)]' 
-                              : 'bg-slate-900/45 border-white/15 text-slate-200 hover:border-white/30 hover:text-white'
+                              ? 'bg-accent text-background border-accent shadow-xl shadow-accent/20' 
+                              : 'bg-foreground/[0.03] border-foreground/5 text-foreground/60 dark:text-foreground/40 hover:bg-foreground/[0.06]'
                           }`}
                         >
                           {time}
-                          {duration === time && <div className="w-2 h-2 rounded-full bg-cyan-300"></div>}
+                          {duration === time && <div className="w-1.5 h-1.5 rounded-full bg-background"></div>}
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300/70 uppercase tracking-wider">
-                    <Brain size={16} className="text-indigo-200" /> Coach Mode
+                <div className="space-y-4">
+                  <label className="flex items-center gap-3 text-[10px] font-bold text-foreground/60 dark:text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                    <Brain size={16} className="text-accent" /> Coach Mode
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     {["Friendly", "Challenger", "Expert"].map((mode) => (
                       <button
                         key={mode}
                         type="button"
                         onClick={() => setCoachMode(mode)}
-                        className={`rounded-xl border px-3 py-2 text-xs transition-all ${
+                        className={`py-3.5 rounded-2xl border text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${
                           coachMode === mode
-                            ? "bg-indigo-300/20 border-indigo-200/40 text-white"
-                            : "bg-white/[0.05] border-white/15 text-slate-200 hover:bg-white/[0.1]"
+                            ? "bg-accent text-background border-accent"
+                            : "bg-foreground/[0.03] border-foreground/5 text-foreground/60 dark:text-foreground/40 hover:bg-foreground/[0.06]"
                         }`}
                       >
                         {mode}
@@ -191,31 +190,28 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-xl bg-white/[0.08] border border-white/15 p-3">
-                    <Gauge size={15} className="mx-auto mb-1 text-cyan-200" />
-                    <p className="text-[10px] uppercase tracking-wider text-slate-300/80">Pressure</p>
-                    <p className="text-sm text-white font-semibold">{difficulty === "Senior" ? "High" : difficulty === "Mid-level" ? "Medium" : "Balanced"}</p>
-                  </div>
-                  <div className="rounded-xl bg-white/[0.08] border border-white/15 p-3">
-                    <Rocket size={15} className="mx-auto mb-1 text-fuchsia-200" />
-                    <p className="text-[10px] uppercase tracking-wider text-slate-300/80">Pace</p>
-                    <p className="text-sm text-white font-semibold">{duration === "15 min" ? "Fast" : duration === "30 min" ? "Steady" : "Deep"}</p>
-                  </div>
-                  <div className="rounded-xl bg-white/[0.08] border border-white/15 p-3">
-                    <Sparkles size={15} className="mx-auto mb-1 text-indigo-200" />
-                    <p className="text-[10px] uppercase tracking-wider text-slate-300/80">Tone</p>
-                    <p className="text-sm text-white font-semibold">{coachMode}</p>
-                  </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  {[
+                    { label: 'Pressure', val: difficulty === "Senior" ? "High" : difficulty === "Mid-level" ? "Medium" : "Balanced", icon: <Gauge size={16} /> },
+                    { label: 'Pace', val: duration === "15 min" ? "Fast" : duration === "30 min" ? "Steady" : "Deep", icon: <Activity size={16} /> },
+                    { label: 'Tone', val: coachMode, icon: <Sparkles size={16} /> }
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-2xl bg-foreground/[0.03] border border-foreground/5 p-4 space-y-1 group hover:bg-foreground/[0.06] transition-colors">
+                      <div className="text-accent mx-auto opacity-60 dark:opacity-40 group-hover:opacity-100 transition-opacity flex justify-center mb-1">{s.icon}</div>
+                      <p className="text-[8px] uppercase tracking-[0.2em] font-bold text-foreground/30">{s.label}</p>
+                      <p className="text-xs text-foreground font-bold">{s.val}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-6">
                   <button 
                     type="submit"
-                    className="w-full group relative flex items-center justify-center gap-3 px-8 py-5 bg-gradient-to-r from-cyan-300 via-blue-300 to-fuchsia-300 text-slate-900 rounded-2xl font-semibold text-base transition-all hover:brightness-105 active:scale-[0.98] overflow-hidden shadow-[0_8px_34px_rgba(56,189,248,0.32)]"
+                    disabled={isCreating}
+                    className="w-full group relative flex items-center justify-center gap-4 px-10 py-6 bg-accent text-background rounded-2xl font-bold text-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 shadow-2xl shadow-accent/20"
                   >
                     <span>Initialize Session</span>
-                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </div>
