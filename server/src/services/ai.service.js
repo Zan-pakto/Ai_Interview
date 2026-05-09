@@ -78,9 +78,17 @@ Do not wrap your response in markdown code blocks like \`\`\`json. Return ONLY t
     const response = await result.response;
     const text = response.text().trim();
     
-    // Attempt to parse JSON, cleaning up markdown code block wrapper if present
-    const cleanJson = text.replace(/^```json\s*|```$/g, '').trim();
-    return JSON.parse(cleanJson);
+    try {
+      // Robust JSON extraction: Find the outer-most curly braces to ignore conversational text/markdown
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error("❌ Failed parsing Gemini feedback JSON:", text);
+      throw parseError;
+    }
   } catch (error) {
     console.error('Error generating feedback:', error);
     return {

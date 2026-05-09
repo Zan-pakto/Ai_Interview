@@ -243,11 +243,41 @@ io.on('connection', (socket) => {
 
   socket.on('end-interview', async (data) => {
     const { roomId } = data;
-    const session = sessionStore.get(roomId);
-    if (!session) return;
+    let session = sessionStore.get(roomId);
+    
+    // Fallback: If in-memory session was lost due to reconnection/server restart, load from DB
+    if (!session) {
+      try {
+        const dbSession = await prisma.session.findUnique({ where: { roomId } });
+        if (dbSession) {
+          session = {
+            topic: dbSession.topic,
+            difficulty: dbSession.difficulty
+          };
+        }
+      } catch (dbErr) {
+        console.error("❌ Fallback session lookup failed:", dbErr);
+      }
+    }
+
+    if (!session) {
+      socket.emit('error', { message: "Session session not found" });
+      return;
+    }
 
     try {
-      const feedback = await generateFeedback(session.history, {
+      // Load full interview history directly from PostgreSQL database as source of truth
+      const dbMessages = await prisma.message.findMany({
+        where: { sessionId: roomId },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      const history = dbMessages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
+      const feedback = await generateFeedback(history, {
         topic: session.topic,
         difficulty: session.difficulty
       });
