@@ -6,7 +6,7 @@ import { Mic, MicOff, Video, VideoOff, Activity, AlignLeft, ShieldCheck, Zap, Ti
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSocketToken } from '@/actions/auth.actions';
 
-const SOCKET_SERVER = "http://localhost:5000";
+const SOCKET_SERVER =  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
 interface InterviewViewProps {
   topic: string;
