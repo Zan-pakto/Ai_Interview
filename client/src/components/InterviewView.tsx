@@ -286,7 +286,15 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           const base64Audio = (reader.result as string).split(',')[1];
-          socketRef.current?.emit('user-answer', { roomId, audio: base64Audio });
+          const durationMinutes = parseInt(duration, 10) || 30;
+          const totalSecondsLimit = durationMinutes * 60;
+          const remainingSeconds = Math.max(0, totalSecondsLimit - elapsedSeconds);
+          
+          socketRef.current?.emit('user-answer', { 
+            roomId, 
+            audio: base64Audio,
+            remainingSeconds 
+          });
         };
         audioChunksRef.current = [];
       };

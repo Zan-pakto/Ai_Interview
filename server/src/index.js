@@ -205,7 +205,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('user-answer', async (data) => {
-    const { roomId, audio } = data;
+    const { roomId, audio, remainingSeconds } = data;
     const session = sessionStore.get(roomId);
     if (!session) return;
 
@@ -224,7 +224,8 @@ io.on('connection', (socket) => {
     // 2. Generate Next Question using session context
     const nextQuestion = await generateNextQuestion(session.history, userText, {
       topic: session.topic,
-      difficulty: session.difficulty
+      difficulty: session.difficulty,
+      remainingSeconds
     });
     
     // Update history
