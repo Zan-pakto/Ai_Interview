@@ -64,36 +64,60 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
     let active = true;
     const init = async () => {
       try {
+        console.log("🔌 [Socket] Starting initialization. Server URL:", SOCKET_SERVER);
+        
+        // Fetch JWT socket token
         const token = await getSocketToken();
-        if (!active) return;
+        console.log("🔑 [Socket] Token response retrieved:", token ? "Token acquired (length: " + token.length + ")" : "No token found");
+        
+        if (!active) {
+          console.warn("⚠️ [Socket] Init aborted because component became inactive");
+          return;
+        }
 
         const newSocket = io(SOCKET_SERVER, {
           auth: { token },
           transports: ['websocket']
         });
 
+        newSocket.on('connect', () => {
+          console.log("✅ [Socket] Connected successfully! Session ID (socket.id):", newSocket.id);
+        });
+
+        newSocket.on('connect_error', (err) => {
+          console.error("❌ [Socket] Connection error event:", err.message, err);
+        });
+
         newSocket.on('ai-message', async (data) => {
+          console.log("🤖 [Socket] AI message event received:", data);
           setTranscript(prev => [...prev, { role: 'ai', text: data.text }]);
           if (data.audio) {
+            console.log("🔊 [Socket] Playing AI speech audio buffer");
             const audio = new Audio("data:audio/mp3;base64," + data.audio);
-            audio.play();
+            audio.play().catch(audioErr => console.error("❌ Audio playback failed:", audioErr));
           }
         });
 
         newSocket.on('user-transcript', (data) => {
+          console.log("🗣️ [Socket] User transcription received:", data);
           setLiveTranscript(data.text);
           setTranscript(prev => [...prev, { role: 'user', text: data.text }]);
         });
 
         newSocket.on('interview-feedback', (data) => {
+          console.log("📊 [Socket] Interview feedback received:", data);
           setFeedback(data.feedback);
           setIsGeneratingFeedback(false);
+        });
+
+        newSocket.on('disconnect', (reason) => {
+          console.warn("🔌 [Socket] Disconnected. Reason:", reason);
         });
 
         socketRef.current = newSocket;
         setSocket(newSocket);
       } catch (err) {
-        console.error("Socket initialization failed:", err);
+        console.error("❌ [Socket] Critical exception during initialization:", err);
       }
     };
 
@@ -102,6 +126,7 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
     return () => {
       active = false;
       if (socketRef.current) {
+        console.log("🔌 [Socket] Cleaning up and disconnecting socket");
         socketRef.current.disconnect();
       }
     };
