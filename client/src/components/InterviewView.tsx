@@ -5,8 +5,6 @@ import { io, Socket } from 'socket.io-client';
 import { Mic, MicOff, Video, VideoOff, Activity, AlignLeft, ShieldCheck, Zap, Timer, Gauge, Bot, CirclePause, ChevronRight, Sparkles, LayoutDashboard, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSocketToken } from '@/actions/auth.actions';
-import process from 'process';
-
 
 const SOCKET_SERVER = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
@@ -236,7 +234,7 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
                 ref={videoRef} 
                 autoPlay 
                 muted 
-                className={`w-full h-full object-cover transition-opacity duration-1000 ${videoOn ? 'opacity-100' : 'opacity-0'}`} 
+                className={`w-full h-full object-cover -scale-x-100 transition-opacity duration-1000 ${videoOn ? 'opacity-100' : 'opacity-0'}`} 
               />
               
               {!videoOn && (
