@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'aura_super_secret_key_123_production_safe'
+  process.env.JWT_SECRET || 'aura_super_secret_key_123'
 );
 
 export const AUTH_COOKIE_NAME = 'aura_auth_token';
