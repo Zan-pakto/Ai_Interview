@@ -53,17 +53,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
       <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-cyan-400/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[120px] pointer-events-none" />
 
-      <header className="fixed top-0 w-full z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between bg-white/80 dark:bg-white/[0.02] backdrop-blur-xl border border-neutral-200 dark:border-white/5 rounded-2xl px-6 py-3 shadow-lg shadow-black/5 dark:shadow-2xl dark:shadow-black/50 transition-colors duration-300">
-          <button onClick={onBack} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center">
-              <Sparkles size={16} className="text-blue-500 dark:text-blue-400" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-white">Aura</span>
-          </button>
-          <ThemeToggle />
-        </div>
-      </header>
+
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

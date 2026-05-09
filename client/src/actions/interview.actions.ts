@@ -9,50 +9,73 @@ export async function createSessionAction(data: {
   difficulty: string;
   duration: string;
 }) {
-  const session = await getAuthSession();
-  if (!session) throw new Error("Unauthorized");
+  try {
+    const session = await getAuthSession();
+    if (!session) throw new Error("Unauthorized");
 
-  const roomId = `room-${Math.random().toString(36).substring(2, 11)}`;
+    const roomId = `room-${Math.random().toString(36).substring(2, 11)}`;
 
-  const newSession = await prisma.session.create({
-    data: {
-      roomId,
-      userId: session.userId,
-      topic: data.topic,
-      difficulty: data.difficulty,
-      duration: data.duration,
-    },
-  });
+    const newSession = await prisma.session.create({
+      data: {
+        roomId,
+        userId: session.userId,
+        topic: data.topic,
+        difficulty: data.difficulty,
+        duration: data.duration,
+      },
+    });
 
-  revalidatePath("/");
-  return newSession;
+    revalidatePath("/");
+    return newSession;
+  } catch (err: any) {
+    console.error("❌ createSessionAction error:", err);
+    console.error("❌ Error name:", err?.name);
+    console.error("❌ Error message:", err?.message);
+    console.error("❌ Error stack:", err?.stack);
+    throw err;
+  }
 }
 
 export async function getSessionHistoryAction() {
-  const session = await getAuthSession();
-  if (!session) return [];
+  try {
+    const session = await getAuthSession();
+    if (!session) return [];
 
-  return await prisma.session.findMany({
-    where: { userId: session.userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      _count: {
-        select: { messages: true }
+    return await prisma.session.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { messages: true }
+        }
       }
-    }
-  });
+    });
+  } catch (err: any) {
+    console.error("❌ getSessionHistoryAction error:", err);
+    console.error("❌ Error name:", err?.name);
+    console.error("❌ Error message:", err?.message);
+    return [];
+  }
 }
 
 export async function getSessionDetailsAction(roomId: string) {
-  const session = await getAuthSession();
-  if (!session) throw new Error("Unauthorized");
+  try {
+    const session = await getAuthSession();
+    if (!session) throw new Error("Unauthorized");
 
-  return await prisma.session.findUnique({
-    where: { roomId },
-    include: {
-      messages: {
-        orderBy: { timestamp: 'asc' }
+    return await prisma.session.findUnique({
+      where: { roomId },
+      include: {
+        messages: {
+          orderBy: { timestamp: 'asc' }
+        }
       }
-    }
-  });
+    });
+  } catch (err: any) {
+    console.error("❌ getSessionDetailsAction error:", err);
+    console.error("❌ Error name:", err?.name);
+    console.error("❌ Error message:", err?.message);
+    console.error("❌ Error stack:", err?.stack);
+    throw err;
+  }
 }

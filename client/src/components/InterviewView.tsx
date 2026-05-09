@@ -213,43 +213,7 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
   const completion = Math.min((elapsedSeconds / (parseInt(duration, 10) * 60 || 1)) * 100, 100);
 
   return (
-    <div className="flex flex-col h-screen text-[#f6f8ff] font-outfit overflow-hidden">
-      <header className="h-16 px-6 flex justify-between items-center bg-slate-900/50 backdrop-blur-xl border-b border-white/15 z-20">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-300/40 text-blue-300 shadow-[0_0_25px_rgba(59,130,246,0.3)]">
-            <Zap size={16} />
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold tracking-wide">Aura Workspace</h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-white/[0.12] rounded-lg border border-white/20">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">System Operational</span>
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-2 rounded-lg border border-white/20 bg-white/[0.1] px-3 py-1.5">
-            <Timer size={14} className="text-cyan-200" />
-            <span className="text-xs font-medium text-slate-100">{formatTime(elapsedSeconds)}</span>
-          </div>
-          <div className="h-4 w-px bg-white/10" />
-          <div className="flex gap-2">
-            <span className="px-3 py-1 bg-white/8 rounded-md text-xs font-medium text-slate-100 border border-white/10">
-              {topic}
-            </span>
-            <span className="px-3 py-1 bg-blue-500/15 rounded-md text-xs font-medium text-blue-200 border border-blue-300/30">
-              {difficulty}
-            </span>
-            <span className="hidden sm:inline px-3 py-1 bg-fuchsia-500/15 rounded-md text-xs font-medium text-fuchsia-200 border border-fuchsia-300/30">
-              {duration}
-            </span>
-          </div>
-        </div>
-      </header>
-
+    <div className="flex flex-col h-screen text-[#f6f8ff] font-outfit overflow-hidden pt-20">
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative p-4 gap-4">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-35" />
         <div className="absolute -top-20 left-1/3 h-72 w-72 rounded-full bg-cyan-400/20 blur-[130px] animate-float-slow" />

@@ -34,7 +34,7 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
   };
 
   return (
-    <div className="min-h-screen text-[#f8faff] flex items-center justify-center p-6 relative overflow-hidden font-outfit">
+    <div className="min-h-screen text-[#f8faff] flex items-center justify-center pt-24 pb-6 px-6 relative overflow-hidden font-outfit">
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] opacity-40" />
       <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full bg-cyan-400/20 blur-[120px] animate-float-slow" />
       <div className="absolute -bottom-28 right-0 h-[22rem] w-[22rem] rounded-full bg-indigo-500/20 blur-[140px] animate-float-slow" />

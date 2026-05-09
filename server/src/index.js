@@ -49,7 +49,10 @@ app.post('/api/auth/signup', async (req, res) => {
       user: { id: user.id, email: user.email, name: user.name }
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('❌ Signup error:', error);
+    console.error('❌ Signup error name:', error.name);
+    console.error('❌ Signup error message:', error.message);
+    console.error('❌ Signup error stack:', error.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -77,7 +80,10 @@ app.post('/api/auth/login', async (req, res) => {
       user: { id: user.id, email: user.email, name: user.name }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
+    console.error('❌ Login error name:', error.name);
+    console.error('❌ Login error message:', error.message);
+    console.error('❌ Login error stack:', error.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -103,6 +109,7 @@ app.get('/api/auth/me', async (req, res) => {
 
     res.json({ user });
   } catch (error) {
+    console.error('❌ Auth/me error:', error.name, error.message);
     res.status(401).json({ error: 'Invalid token' });
   }
 });
@@ -168,7 +175,9 @@ io.on('connection', (socket) => {
         }
       });
     } catch (dbErr) {
-      console.error("Database error in join-interview:", dbErr);
+      console.error("❌ Database error in join-interview:", dbErr);
+      console.error("❌ DB error name:", dbErr.name);
+      console.error("❌ DB error message:", dbErr.message);
     }
 
     const audioBuffer = await textToSpeech(greeting);
@@ -216,7 +225,9 @@ io.on('connection', (socket) => {
         ]
       });
     } catch (dbErr) {
-      console.error("Database error saving messages:", dbErr);
+      console.error("❌ Database error saving messages:", dbErr);
+      console.error("❌ DB error name:", dbErr.name);
+      console.error("❌ DB error message:", dbErr.message);
     }
 
     // 3. TTS
@@ -254,7 +265,9 @@ io.on('connection', (socket) => {
           }
         });
       } catch (dbErr) {
-        console.error("Database error saving session feedback:", dbErr);
+        console.error("❌ Database error saving session feedback:", dbErr);
+        console.error("❌ DB error name:", dbErr.name);
+        console.error("❌ DB error message:", dbErr.message);
       }
 
       socket.emit('interview-feedback', { feedback });
