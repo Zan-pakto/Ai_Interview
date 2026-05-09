@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Brain, Target, LineChart, Shield, Layout, Zap, ChevronRight, PlayCircle, Star, Users, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, Brain, Target, LineChart, Zap, Star, ChevronRight, PlayCircle, Book, Clock, UserCheck, Activity, Gauge } from 'lucide-react';
 
 interface LandingViewProps {
   onStart: () => void;
@@ -10,225 +10,305 @@ interface LandingViewProps {
   user: { id: string; email: string; name: string } | null;
 }
 
+const DashboardMockup = () => {
+  return (
+    <div className="w-full glass-card rounded-[3rem] p-8 md:p-12 shadow-3xl border border-white/20 dark:border-white/5 relative overflow-hidden group">
+      {/* Background Decorative elements */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2" />
+      
+      <div className="relative z-10 flex flex-col gap-10">
+        {/* Header Area */}
+        <div className="flex flex-col gap-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] font-bold uppercase tracking-widest self-start">
+            <Sparkles size={12} />
+            Aura Engine V3 Live
+          </div>
+          <h3 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight leading-none">
+            Interview Prep, <br />
+            <span className="opacity-60 dark:opacity-40 italic serif">Cinematic Edition.</span>
+          </h3>
+          <p className="text-sm text-foreground/70 dark:text-foreground/50 max-w-sm font-medium leading-relaxed">
+            Walk into every interview with confidence. Build a realistic AI session with dynamic prompts and instant feedback.
+          </p>
+        </div>
+
+        {/* Setup Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                <Book size={14} className="text-accent" />
+                Focus Area
+              </div>
+              <div className="p-4 bg-foreground/[0.03] border border-foreground/5 rounded-2xl text-sm text-foreground/60 dark:text-foreground/40 font-medium">
+                e.g. Senior Frontend Engineer, System Design
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                  <Activity size={14} className="text-accent" />
+                  Difficulty
+                </div>
+                <div className="space-y-2">
+                  {['Junior', 'Mid-level', 'Senior'].map((d) => (
+                    <div key={d} className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${d === 'Mid-level' ? 'bg-accent/10 border-accent text-accent shadow-lg shadow-accent/5' : 'bg-foreground/[0.03] border-foreground/5 text-foreground/60 dark:text-foreground/40'}`}>
+                      {d}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                  <Clock size={14} className="text-accent" />
+                  Duration
+                </div>
+                <div className="space-y-2">
+                  {['15 min', '30 min', '45 min'].map((d) => (
+                    <div key={d} className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${d === '30 min' ? 'bg-accent/10 border-accent text-accent shadow-lg shadow-accent/5' : 'bg-foreground/[0.03] border-foreground/5 text-foreground/60 dark:text-foreground/40'}`}>
+                      {d}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                <UserCheck size={14} className="text-accent" />
+                Coach Mode
+              </div>
+              <div className="flex gap-2">
+                {['Friendly', 'Challenger', 'Expert'].map((m) => (
+                  <div key={m} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border text-center transition-all ${m === 'Challenger' ? 'bg-accent text-background border-accent' : 'bg-foreground/[0.03] border-foreground/5 text-foreground/60 dark:text-foreground/40'}`}>
+                    {m}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Pressure', val: 'Medium', icon: <Gauge size={14} /> },
+                { label: 'Pace', val: 'Steady', icon: <Activity size={14} /> },
+                { label: 'Tone', val: 'Challenger', icon: <Target size={14} /> }
+              ].map((s) => (
+                <div key={s.label} className="p-4 bg-foreground/[0.03] border border-foreground/5 rounded-2xl text-center space-y-1">
+                  <div className="text-accent flex justify-center mb-1 opacity-50">{s.icon}</div>
+                  <div className="text-[8px] font-bold uppercase tracking-widest text-foreground/30">{s.label}</div>
+                  <div className="text-[10px] font-bold text-foreground">{s.val}</div>
+                </div>
+              ))}
+            </div>
+
+            <button className="w-full py-4 bg-accent text-background rounded-2xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-2xl shadow-accent/20 transition-transform hover:scale-[1.02] active:scale-[0.98]">
+              Initialize Session
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Footer stats */}
+        <div className="flex gap-12 pt-4 border-t border-foreground/5">
+          <div>
+            <div className="text-2xl font-bold text-foreground">12k+</div>
+            <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-foreground/30">Sessions Simulated</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-foreground">99.9%</div>
+            <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-foreground/30">Realtime Uptime</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function LandingView({ onStart, onLogin, user }: LandingViewProps) {
   const features = [
     {
-      icon: <Brain className="text-blue-500 dark:text-blue-400" size={24} />,
+      icon: <Brain size={24} />,
       title: "Contextual AI Engine",
       description: "Our advanced models adapt in real-time, asking follow-up questions based on your specific responses and experience.",
-      gradient: "from-blue-500/10 to-indigo-500/10"
+      gradient: "from-blue-500/20 to-indigo-500/20"
     },
     {
-      icon: <Target className="text-purple-500 dark:text-purple-400" size={24} />,
+      icon: <Target size={24} />,
       title: "Role-Specific Scenarios",
       description: "From Frontend Engineering to Product Management, practice with scenarios tailored to your exact target role.",
-      gradient: "from-purple-500/10 to-fuchsia-500/10"
+      gradient: "from-purple-500/20 to-fuchsia-500/20"
     },
     {
-      icon: <LineChart className="text-emerald-500 dark:text-emerald-400" size={24} />,
+      icon: <LineChart size={24} />,
       title: "Actionable Analytics",
       description: "Get detailed post-interview breakdowns on your communication clarity, technical accuracy, and pacing.",
-      gradient: "from-emerald-500/10 to-teal-500/10"
+      gradient: "from-emerald-500/20 to-teal-500/20"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#030303] text-foreground font-outfit selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-300">
-      {/* SaaS Background Grid */}
-      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none transition-colors duration-300"></div>
-      
+    <div className="relative min-h-screen selection:bg-accent/30 overflow-x-hidden">
+      {/* Cinematic Hero Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-[url('/images/hero-light.png')] dark:bg-[url('/images/hero-dark.png')] bg-cover bg-center transition-all duration-1000 scale-105 brightness-105 dark:brightness-75" />
+        <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 hero-vignette" />
+      </div>
+
       <main className="relative z-10">
         {/* Hero Section */}
-        <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[100%] bg-blue-500/5 dark:bg-blue-600/10 blur-[150px] rounded-full pointer-events-none -z-10" />
-          
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-left"
+        <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: [0.2, 0.8, 0.2, 1] }}
+            className="max-w-5xl mx-auto text-center"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, duration: 1 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/5 border border-accent/10 backdrop-blur-md text-accent text-[11px] font-bold tracking-[0.2em] uppercase mb-10"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold tracking-wide mb-8">
-                <Sparkles size={14} className="animate-pulse" />
-                Aura AI Engine V3.0 Live
-              </div>
-              
-              <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.05] tracking-tight text-neutral-900 dark:text-white mb-8">
-                Master the <br />
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-                  Future of Work.
-                </span>
-              </h1>
-              
-              <p className="text-xl text-neutral-600 dark:text-neutral-400 max-w-xl mb-12 font-light leading-relaxed">
-                Experience high-stakes interviews simulated by cinematic-grade AI. Gain the confidence and technical edge needed to secure your dream offer at world-class tech companies.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center gap-5">
-                <button 
-                  onClick={onStart}
-                  className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-2xl font-semibold text-lg transition-all hover:bg-neutral-800 dark:hover:bg-neutral-200 active:scale-95 w-full sm:w-auto shadow-2xl shadow-blue-500/20"
-                >
-                  <span>{user ? 'Go to Dashboard' : 'Start Free Practice'}</span>
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button className="flex items-center justify-center gap-3 px-8 py-4 bg-white dark:bg-white/[0.03] border border-neutral-200 dark:border-white/10 text-neutral-900 dark:text-white rounded-2xl font-semibold text-lg transition-all hover:bg-neutral-50 dark:hover:bg-white/[0.06] active:scale-95 w-full sm:w-auto">
-                  <PlayCircle size={20} />
-                  Watch Demo
-                </button>
-              </div>
-
-              <div className="mt-12 flex items-center gap-6 text-neutral-500 dark:text-neutral-400">
-                <div className="flex -space-x-3">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white dark:border-[#030303] bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center overflow-hidden">
-                      <img src={`https://i.pravatar.cc/150?u=${i+10}`} alt="User" />
-                    </div>
-                  ))}
-                </div>
-                <div className="text-sm font-light">
-                  <span className="font-semibold text-neutral-900 dark:text-white">12,000+</span> engineers already practicing
-                </div>
-              </div>
+              <Sparkles size={12} className="animate-pulse" />
+              Aura AI Engine V3.0 Live
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative rounded-[2rem] overflow-hidden border border-neutral-200 dark:border-white/10 shadow-2xl shadow-black/20">
-                <img 
-                  src="/images/hero.png" 
-                  alt="Aura AI Dashboard"
-                  className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-              
-              {/* Floating micro-cards */}
-              <motion.div 
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-8 -right-8 p-4 bg-white dark:bg-[#111] border border-neutral-200 dark:border-white/10 rounded-2xl shadow-xl backdrop-blur-xl hidden md:block"
+            
+            <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold leading-[0.95] tracking-tight text-foreground mb-10">
+              Master the <br />
+              <span className="opacity-60 dark:opacity-40 italic serif text-foreground">Future of Work.</span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-14 font-medium leading-relaxed">
+              Experience high-stakes interviews simulated by cinematic-grade AI. Gain the confidence and technical edge needed to secure your dream offer at world-class tech companies.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
+              <button 
+                onClick={onStart}
+                className="group relative px-10 py-5 bg-accent text-background rounded-full font-bold text-lg transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-accent/20 flex items-center gap-3 overflow-hidden"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                    <CheckCircle2 className="text-emerald-500" size={20} />
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-neutral-500">Live Feedback</div>
-                    <div className="text-sm font-semibold text-neutral-900 dark:text-white">Accuracy: 94%</div>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                <span className="relative z-10">{user ? 'Go to Dashboard' : 'Start Free Practice'}</span>
+                <ArrowRight size={20} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+              </button>
+              
+              <button className="flex items-center justify-center gap-3 px-10 py-5 bg-background/30 backdrop-blur-md border border-foreground/10 text-foreground rounded-full font-bold text-lg transition-all hover:bg-background/50 active:scale-95">
+                <PlayCircle size={20} />
+                Watch Demo
+              </button>
+            </div>
+          </motion.div>
+
+          {/* Social Proof Removed */}
         </section>
 
         {/* Cinematic Experience Section */}
-        <section className="py-24 relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6">
+        <section id="experience" className="py-32 relative px-6">
+          <div className="max-w-7xl mx-auto">
             <div className="flex flex-col lg:flex-row items-center gap-20">
-              <div className="w-full lg:w-1/2 order-2 lg:order-1">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  className="relative rounded-[2.5rem] overflow-hidden border border-neutral-200 dark:border-white/10 shadow-2xl shadow-blue-500/5"
-                >
-                  <img 
-                    src="/images/interviewer.png" 
-                    alt="AI Interview Experience"
-                    className="w-full h-auto object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-8">
-                    <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 inline-flex items-center gap-3 self-start">
-                      <Zap size={20} className="text-yellow-400" />
-                      <span className="text-sm font-medium text-white">Adaptive Difficulty Active</span>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, x: -40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1 }}
+                className="w-full lg:w-[60%] order-2 lg:order-1"
+              >
+                <DashboardMockup />
+              </motion.div>
               
-              <div className="w-full lg:w-1/2 order-1 lg:order-2 space-y-8">
-                <div className="space-y-4">
-                  <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white tracking-tight">
+              <motion.div 
+                initial={{ opacity: 0, x: 40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1 }}
+                className="w-full lg:w-[40%] order-1 lg:order-2 space-y-12"
+              >
+                <div className="space-y-6 text-left">
+                  <h2 className="text-5xl md:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
                     Experience the <br />
-                    <span className="text-blue-500">Cinematic Difference.</span>
+                    <span className="opacity-60 dark:opacity-40 italic serif text-foreground">Cinematic Difference.</span>
                   </h2>
-                  <p className="text-lg text-neutral-600 dark:text-neutral-400 font-light leading-relaxed">
+                  <p className="text-xl text-foreground/80 dark:text-foreground/60 font-medium leading-relaxed">
                     Generic chat-based AI is a thing of the past. Aura provides a truly immersive environment that mimics the physical and psychological pressure of a real technical interview.
                   </p>
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {[
                     { title: "Real-time Voice Synthesis", desc: "Natural, human-like dialogue that follows up on your answers." },
                     { title: "Behavioral Analysis", desc: "We track your confidence, pacing, and vocabulary in every turn." },
                     { title: "Dynamic Coding Environment", desc: "Solve complex problems in our integrated cinematic IDE." }
                   ].map((item, i) => (
-                    <div key={i} className="flex gap-4">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center mt-1">
-                        <Star size={14} className="text-blue-500" />
+                    <div key={i} className="flex gap-6 group">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl glass-card flex items-center justify-center transition-all group-hover:bg-accent group-hover:text-background">
+                        <Star size={20} className="transition-colors" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-neutral-900 dark:text-white">{item.title}</h4>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">{item.desc}</p>
+                        <h4 className="text-lg font-bold text-foreground">{item.title}</h4>
+                        <p className="text-foreground/70 dark:text-foreground/50 font-medium">{item.desc}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
 
         {/* Analytics Section */}
-        <section className="py-24 bg-neutral-50 dark:bg-neutral-900/20">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        <section id="insights" className="py-32 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="space-y-12"
+              >
+                <div className="space-y-6 text-left">
+                  <h2 className="text-5xl md:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
                     Data-Driven <br />
-                    <span className="text-purple-500">Self Improvement.</span>
+                    <span className="opacity-60 dark:opacity-40 italic serif">Self Improvement.</span>
                   </h2>
-                  <p className="text-lg text-neutral-600 dark:text-neutral-400 font-light leading-relaxed">
+                  <p className="text-xl text-foreground/80 dark:text-foreground/60 font-medium leading-relaxed">
                     Don't just practice—optimize. Aura breaks down every session into granular data points, providing you with a roadmap to mastery.
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-6 bg-white dark:bg-white/[0.03] border border-neutral-200 dark:border-white/5 rounded-3xl">
-                    <div className="text-3xl font-bold text-neutral-900 dark:text-white mb-1">89%</div>
-                    <div className="text-xs text-neutral-500 uppercase tracking-widest font-medium">Avg. Success Rate</div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="p-8 glass-card rounded-[2.5rem] hover:bg-background/40 transition-all duration-500">
+                    <div className="text-4xl font-bold text-foreground mb-2">89%</div>
+                    <div className="text-[10px] text-foreground/60 dark:text-foreground/40 uppercase tracking-[0.2em] font-bold">Avg. Success Rate</div>
                   </div>
-                  <div className="p-6 bg-white dark:bg-white/[0.03] border border-neutral-200 dark:border-white/5 rounded-3xl">
-                    <div className="text-3xl font-bold text-neutral-900 dark:text-white mb-1">150+</div>
-                    <div className="text-xs text-neutral-500 uppercase tracking-widest font-medium">Roles Supported</div>
+                  <div className="p-8 glass-card rounded-[2.5rem] hover:bg-background/40 transition-all duration-500">
+                    <div className="text-4xl font-bold text-foreground mb-2">150+</div>
+                    <div className="text-[10px] text-foreground/60 dark:text-foreground/40 uppercase tracking-[0.2em] font-bold">Roles Supported</div>
                   </div>
                 </div>
 
-                <button className="flex items-center gap-2 text-blue-500 font-semibold hover:gap-4 transition-all">
-                  Explore full analytics capabilities <ChevronRight size={20} />
+                <button className="group flex items-center gap-3 text-accent font-bold uppercase tracking-widest text-xs">
+                  Explore full analytics capabilities <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
                 </button>
-              </div>
+              </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                className="relative"
+                transition={{ duration: 1 }}
+                className="relative group"
               >
-                <div className="absolute inset-0 bg-purple-500/10 blur-[100px] rounded-full" />
-                <div className="relative rounded-[2.5rem] overflow-hidden border border-neutral-200 dark:border-white/10 shadow-2xl">
+                <div className="absolute inset-0 bg-accent/20 blur-[120px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                <div className="relative rounded-[3rem] overflow-hidden glass-card p-2 shadow-3xl">
                   <img 
                     src="/images/analytics.png" 
                     alt="Analytics Report"
-                    className="w-full h-auto object-cover"
+                    className="w-full h-auto rounded-[2.5rem]"
                   />
                 </div>
               </motion.div>
@@ -236,35 +316,35 @@ export default function LandingView({ onStart, onLogin, user }: LandingViewProps
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="max-w-7xl mx-auto px-6 py-24">
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-3xl md:text-5xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        {/* Features Grid */}
+        <section id="features" className="max-w-7xl mx-auto px-6 py-32">
+          <div className="text-center mb-24 space-y-4">
+            <h2 className="text-5xl md:text-6xl font-bold text-foreground tracking-tight">
               Engineered for Excellence.
             </h2>
-            <p className="text-neutral-600 dark:text-neutral-400 text-lg max-w-2xl mx-auto font-light">
+            <p className="text-foreground/70 dark:text-foreground/50 text-xl max-w-2xl mx-auto font-medium">
               Everything you need to transform interview anxiety into unshakeable confidence.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {features.map((feature, index) => (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.8, delay: index * 0.1 }}
                 key={index}
-                className="group relative rounded-[2rem] bg-white dark:bg-white/[0.02] border border-neutral-200 dark:border-white/5 p-10 transition-all hover:bg-neutral-50 dark:hover:bg-white/[0.04] dark:hover:border-white/10 overflow-hidden shadow-sm dark:shadow-none"
+                className="group relative rounded-[3rem] glass-card p-12 transition-all duration-500 hover:bg-background/40 hover:-translate-y-2"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                <div className="relative z-10 space-y-6">
-                  <div className="w-14 h-14 rounded-2xl bg-neutral-50 dark:bg-black/50 border border-neutral-100 dark:border-white/10 flex items-center justify-center shadow-inner transition-colors">
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500 rounded-[3rem]`} />
+                <div className="relative z-10 space-y-8 text-left">
+                  <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-background transition-all duration-500">
                     {feature.icon}
                   </div>
-                  <div className="space-y-3">
-                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white transition-colors">{feature.title}</h3>
-                    <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed font-light text-base transition-colors">
+                  <div className="space-y-4">
+                    <h3 className="text-3xl font-bold text-foreground tracking-tight">{feature.title}</h3>
+                    <p className="text-foreground/80 dark:text-foreground/60 leading-relaxed font-medium text-lg">
                       {feature.description}
                     </p>
                   </div>
@@ -275,57 +355,94 @@ export default function LandingView({ onStart, onLogin, user }: LandingViewProps
         </section>
 
         {/* CTA Section */}
-        <section className="max-w-7xl mx-auto px-6 py-24 text-center">
-          <div className="bg-neutral-900 dark:bg-white rounded-[3rem] p-16 md:p-24 relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 blur-[100px] rounded-full" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 blur-[100px] rounded-full" />
+        <section className="max-w-7xl mx-auto px-6 py-32 text-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="glass-card rounded-[4rem] p-20 md:p-32 relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 w-96 h-96 bg-accent/10 blur-[120px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent/5 blur-[120px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             
-            <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-              <h2 className="text-4xl md:text-6xl font-bold text-white dark:text-black tracking-tight">
-                Ready to land your dream offer?
+            <div className="relative z-10 max-w-3xl mx-auto space-y-12">
+              <h2 className="text-5xl md:text-7xl font-bold text-foreground tracking-tight leading-[1.05]">
+                Ready to land your <br />
+                <span className="opacity-60 dark:opacity-40 italic serif">dream offer?</span>
               </h2>
-              <p className="text-lg text-neutral-400 dark:text-neutral-600 font-light leading-relaxed">
+              <p className="text-xl text-foreground/70 dark:text-foreground/50 font-medium leading-relaxed max-w-xl mx-auto">
                 Join 12,000+ engineers who are mastering their communication and technical skills with Aura AI.
               </p>
-              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
                 <button 
                   onClick={onStart}
-                  className="px-10 py-5 bg-white dark:bg-black text-black dark:text-white rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-xl"
+                  className="px-12 py-6 bg-accent text-background rounded-full font-bold text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-accent/20"
                 >
                   Get Started for Free
                 </button>
-                <button className="px-10 py-5 bg-transparent border-2 border-neutral-700 dark:border-neutral-200 text-white dark:text-black rounded-2xl font-bold text-lg hover:bg-neutral-800 dark:hover:bg-neutral-50 transition-all">
+                <button className="px-12 py-6 bg-background/30 backdrop-blur-md border border-foreground/10 text-foreground rounded-full font-bold text-xl hover:bg-background/50 active:scale-95 transition-all">
                   Contact Sales
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-neutral-200 dark:border-white/5 bg-white dark:bg-[#030303] py-12 relative z-10 transition-colors">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-blue-600 dark:text-blue-500 transition-colors" />
-              <span className="text-xl font-bold text-neutral-900 dark:text-white tracking-tight transition-colors">Aura AI</span>
+        {/* Footer */}
+        <footer className="py-24 px-6 border-t border-foreground/5 bg-background/10 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-16 mb-20">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <Sparkles size={24} className="text-accent" />
+                  <span className="text-2xl font-bold tracking-tighter">AURA AI</span>
+                </div>
+                <p className="text-foreground/60 dark:text-foreground/40 font-medium max-w-xs">
+                  Mastering interviews with cinematic-grade intelligence and professional precision.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-20">
+                <div className="space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">Platform</div>
+                  <div className="flex flex-col gap-3 text-[13px] font-bold text-foreground/70 dark:text-foreground/50">
+                    <a href="#" className="hover:text-foreground transition-colors">Features</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Methodology</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Pricing</a>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">Company</div>
+                  <div className="flex flex-col gap-3 text-[13px] font-bold text-foreground/70 dark:text-foreground/50">
+                    <a href="#" className="hover:text-foreground transition-colors">About</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Journal</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Careers</a>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">Legal</div>
+                  <div className="flex flex-col gap-3 text-[13px] font-bold text-foreground/70 dark:text-foreground/50">
+                    <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Cookies</a>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">Mastering interviews with cinematic-grade intelligence.</p>
+            
+            <div className="flex flex-col md:flex-row justify-between items-center pt-12 border-t border-foreground/5 gap-8">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-foreground/40 dark:text-foreground/20">
+                © 2026 Aura Technologies. All rights reserved.
+              </div>
+              <div className="flex gap-8 text-[11px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
+                <a href="#" className="hover:text-foreground transition-colors">LinkedIn</a>
+                <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
+              </div>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-8">
-            <a href="#" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors">Terms</a>
-            <a href="#" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors">Twitter</a>
-            <a href="#" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors">LinkedIn</a>
-          </div>
-          
-          <div className="text-sm text-neutral-500">
-            © 2026 Aura Technologies.
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </main>
     </div>
   );
 }

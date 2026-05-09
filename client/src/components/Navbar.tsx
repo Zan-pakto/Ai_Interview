@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, LogOut, LayoutDashboard } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { logoutAction } from '@/actions/auth.actions';
+import { motion } from 'framer-motion';
 
 interface NavbarProps {
   user: { id: string; email: string; name: string } | null;
@@ -20,59 +21,84 @@ export function Navbar({ user, onStart, onLogin, onHome, showNavLinks = true }: 
   };
 
   return (
-    <nav className="fixed top-0 w-full z-50 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between bg-white/80 dark:bg-white/[0.02] backdrop-blur-xl border border-neutral-200 dark:border-white/5 rounded-2xl px-6 py-3 shadow-lg shadow-black/5 dark:shadow-2xl dark:shadow-black/50 transition-colors duration-300">
-        <button onClick={onHome} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center transition-colors">
-            <Sparkles size={16} className="text-blue-500 dark:text-blue-400" />
+    <motion.nav 
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}
+      className="fixed top-0 w-full z-50 px-6 py-6"
+    >
+      <div className="max-w-7xl mx-auto flex items-center justify-between glass-nav rounded-[2rem] px-8 py-4 shadow-2xl shadow-black/5 transition-all duration-500 hover:shadow-black/10">
+        <button onClick={onHome} className="flex items-center gap-3 hover:opacity-70 transition-all duration-300 group">
+          <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-lg shadow-black/5">
+            <Sparkles size={20} className="text-background" />
           </div>
-          <span className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-white transition-colors">Aura</span>
+          <span className="text-xl font-bold tracking-tight text-foreground">Aura</span>
         </button>
 
         {showNavLinks && (
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors">How it Works</a>
-            <a href="#pricing" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors">Pricing</a>
+          <div className="hidden md:flex items-center gap-10">
+            {[
+              { label: 'Experience', href: '#experience' },
+              { label: 'Insights', href: '#insights' },
+              { label: 'Features', href: '#features' }
+            ].map((item) => (
+              <a 
+                key={item.label}
+                href={item.href} 
+                className="text-[13px] font-bold uppercase tracking-[0.1em] text-foreground/70 dark:text-foreground/50 hover:text-foreground transition-colors duration-300"
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <ThemeToggle />
-          <div className="h-4 w-px bg-neutral-200 dark:bg-white/10 hidden md:block transition-colors"></div>
+          <div className="h-6 w-px bg-foreground/10 hidden md:block"></div>
+          
           {user ? (
-            <>
-              <button 
-                onClick={handleLogout}
-                className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block"
-              >
-                Sign Out
-              </button>
-              <button 
-                onClick={onStart}
-                className="px-5 py-2 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors active:scale-95"
-              >
-                Dashboard
-              </button>
-            </>
+            <div className="flex items-center gap-5">
+              <div className="hidden sm:flex flex-col items-end text-right">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">Welcome back</span>
+                <span className="text-sm font-bold text-foreground">{user.name}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={onStart}
+                  className="px-6 py-2.5 bg-accent text-background rounded-full text-[13px] font-bold hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-accent/20 flex items-center gap-2"
+                >
+                  <LayoutDashboard size={14} />
+                  Dashboard
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="p-2.5 text-foreground/80 dark:text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-full transition-all duration-300"
+                  title="Sign Out"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            </div>
           ) : (
-            <>
+            <div className="flex items-center gap-4">
               <button 
                 onClick={onLogin}
-                className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white transition-colors hidden sm:block"
+                className="text-[13px] font-bold text-foreground/80 dark:text-foreground/60 hover:text-foreground transition-colors px-4 py-2"
               >
                 Log in
               </button>
               <button 
                 onClick={onStart}
-                className="px-5 py-2 bg-neutral-900 text-white dark:bg-white dark:text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors active:scale-95"
+                className="px-8 py-2.5 bg-accent text-background rounded-full text-[13px] font-bold hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-accent/20"
               >
                 Sign Up
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 }
