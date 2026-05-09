@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import { Mic, MicOff, Video, VideoOff, Activity, AlignLeft, ShieldCheck, Zap, Timer, Gauge, Bot, CirclePause, ChevronRight, Sparkles, LayoutDashboard, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSocketToken } from '@/actions/auth.actions';
+import { calculateEyeContact, calculateConfidence } from '@/lib/gaze';
 
 const SOCKET_SERVER = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
@@ -30,6 +31,13 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
   const [isCompleted, setIsCompleted] = useState(false);
   const [feedback, setFeedback] = useState<any | null>(null);
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+  
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [liveConfidence, setLiveConfidence] = useState(75);
+  const [isLookingAtScreen, setIsLookingAtScreen] = useState(true);
+  const [currentEmotion, setCurrentEmotion] = useState("Focused");
+
+  const faceapiRef = useRef<any>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -131,6 +139,95 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
       }
     };
   }, []);
+
+  // 1. Dynamic SSR-Safe Model Loading
+  useEffect(() => {
+    let active = true;
+    const loadModels = async () => {
+      try {
+        console.log("📥 [FaceAPI] Dynamic load started...");
+        const faceapi = await import('@vladmandic/face-api');
+        
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+        
+        if (!active) return;
+        console.log("✅ [FaceAPI] Neural network models loaded successfully!");
+        faceapiRef.current = faceapi;
+        setModelsLoaded(true);
+      } catch (err) {
+        console.error("❌ [FaceAPI] Failed to dynamically load models:", err);
+      }
+    };
+    loadModels();
+    return () => { active = false; };
+  }, []);
+
+  // 2. Real-Time Facial Analysis Loop
+  useEffect(() => {
+    if (!modelsLoaded || !videoOn || !videoRef.current || isCompleted) return;
+
+    let timeoutId: NodeJS.Timeout;
+    const faceapi = faceapiRef.current;
+
+    const trackFace = async () => {
+      try {
+        if (videoRef.current && videoRef.current.readyState === 4) {
+          const detection = await faceapi
+            .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceExpressions();
+
+          if (detection) {
+            const eyeContact = calculateEyeContact(detection.landmarks);
+            setIsLookingAtScreen(eyeContact);
+
+            const sortedExpressions = Object.entries(detection.expressions)
+              .sort((a: any, b: any) => b[1] - a[1]);
+            
+            if (sortedExpressions.length > 0) {
+              const primary = sortedExpressions[0][0];
+              setCurrentEmotion(primary.charAt(0).toUpperCase() + primary.slice(1));
+            }
+
+            const confidenceScore = calculateConfidence(detection.expressions, eyeContact);
+            setLiveConfidence(confidenceScore);
+          }
+        }
+      } catch (err) {
+        console.error("❌ [FaceAPI] Error in tracking frame:", err);
+      }
+      
+      timeoutId = setTimeout(() => {
+        requestAnimationFrame(trackFace);
+      }, 300);
+    };
+
+    requestAnimationFrame(trackFace);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [modelsLoaded, videoOn, isCompleted]);
+
+  // 3. Socket Transmission of Live Metrics
+  useEffect(() => {
+    if (!isRecording || !socketRef.current) return;
+
+    const interval = setInterval(() => {
+      console.log(`📡 [Socket] Submitting live metrics - Confidence: ${liveConfidence}%, Gaze: ${isLookingAtScreen}, Emotion: ${currentEmotion}`);
+      socketRef.current?.emit('submit-metrics', {
+        roomId,
+        confidence: liveConfidence,
+        eyeContact: isLookingAtScreen,
+        expression: currentEmotion
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isRecording, liveConfidence, isLookingAtScreen, currentEmotion, roomId]);
 
   useEffect(() => {
     if (!isJoined || isCompleted) return;
@@ -347,7 +444,16 @@ export default function InterviewView({ topic, difficulty, duration, roomId, use
               <div className="h-4 w-px bg-foreground/10" />
               <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
                 <Gauge size={14} className="text-accent" />
-                Confidence: <span className="text-foreground font-black">{Math.max(58, Math.min(96, 68 + transcript.length * 3))}%</span>
+                Confidence: <span className="text-foreground font-black">{modelsLoaded ? `${liveConfidence}%` : "Analyzing..."}</span>
+              </div>
+              <div className="h-4 w-px bg-foreground/10" />
+              <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                <div className={`w-1.5 h-1.5 rounded-full ${isLookingAtScreen ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                Gaze: <span className="text-foreground font-black">{isLookingAtScreen ? "Focused" : "Looking Away"}</span>
+              </div>
+              <div className="h-4 w-px bg-foreground/10" />
+              <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-widest text-foreground/60 dark:text-foreground/40">
+                Emotion: <span className="text-foreground font-black">{currentEmotion}</span>
               </div>
             </div>
 

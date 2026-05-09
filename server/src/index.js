@@ -190,6 +190,20 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('submit-metrics', (data) => {
+    const { roomId, confidence, eyeContact, expression } = data;
+    console.log(`📈 [Metrics] Room: ${roomId} | Confidence: ${confidence}% | Gaze: ${eyeContact ? 'Focused' : 'Away'} | Emotion: ${expression}`);
+    
+    const session = sessionStore.get(roomId);
+    if (session) {
+      if (!session.confidenceScores) session.confidenceScores = [];
+      if (!session.gazeChecks) session.gazeChecks = [];
+      
+      session.confidenceScores.push(confidence);
+      session.gazeChecks.push(eyeContact ? 1 : 0);
+    }
+  });
+
   socket.on('user-answer', async (data) => {
     const { roomId, audio } = data;
     const session = sessionStore.get(roomId);
@@ -277,9 +291,27 @@ io.on('connection', (socket) => {
         content: msg.content
       }));
 
+      // Compute averages from tracked live metrics
+      let avgConfidence = 75;
+      let eyeContactPercent = 100;
+
+      if (session.confidenceScores && session.confidenceScores.length > 0) {
+        const sum = session.confidenceScores.reduce((a, b) => a + b, 0);
+        avgConfidence = Math.round(sum / session.confidenceScores.length);
+      }
+
+      if (session.gazeChecks && session.gazeChecks.length > 0) {
+        const sum = session.gazeChecks.reduce((a, b) => a + b, 0);
+        eyeContactPercent = Math.round((sum / session.gazeChecks.length) * 100);
+      }
+
+      console.log(`📊 [Evaluation] Compiling final feedback. Avg Confidence: ${avgConfidence}%, Eye Contact: ${eyeContactPercent}%`);
+
       const feedback = await generateFeedback(history, {
         topic: session.topic,
-        difficulty: session.difficulty
+        difficulty: session.difficulty,
+        avgConfidence,
+        eyeContactPercent
       });
 
       try {
