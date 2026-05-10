@@ -7,13 +7,21 @@ const model = genAI.getGenerativeModel({
   model: "gemini-flash-latest"
 });
 
+const { retrieveRelevantContext } = require('./rag.service');
+
 /**
  * Generates the next interview question based on user response and history.
  */
 async function generateNextQuestion(history, lastUserResponse, context = {}) {
   try {
-    const { topic, difficulty, remainingSeconds } = context;
+    const { topic, difficulty, remainingSeconds, userId } = context;
+
+    // 1. Retrieve relevant chunks from user's uploaded resume based on the topic/response
+    const searchIntent = `Experience with ${topic}. Context of response: ${lastUserResponse}`;
+    const resumeContext = await retrieveRelevantContext(userId, searchIntent, 3);
     
+    const hasResume = resumeContext && !resumeContext.includes("No relevant resume information");
+
     let timeInstruction = "";
     if (typeof remainingSeconds === 'number') {
       if (remainingSeconds <= 60 && remainingSeconds > 0) {
@@ -24,6 +32,10 @@ async function generateNextQuestion(history, lastUserResponse, context = {}) {
     }
     
     const systemInstruction = "You are a professional technical interviewer conducting an adaptive interview. Carefully evaluate the accuracy, correctness, and completeness of the candidate's latest response. You MUST dynamically adjust the difficulty of the next question based on their performance: if their response is correct, solid, and demonstrates good understanding, challenge them by increasing the difficulty slightly for the next question (e.g., asking about edge cases, scalability, or performance optimization); if their response is incorrect, weak, or they struggle, lower the difficulty slightly or offer a supportive clarifying follow-up focused on core fundamentals. Keep your responses concise, natural, and focused on one question at a time. Do not provide answers to your own questions.";
+    
+    const ragGrounding = hasResume 
+      ? `\nIMPORTANT CANDIDATE BACKGROUND (Retrieved from their actual resume):\n${resumeContext}\nUse this factual data to craft personalized follow-up questions (e.g., "I see on your resume that you worked on X at Y company, tell me about..."). DO NOT share non-public info or reveal that you are using a "Source Fragment" string.`
+      : "\n(No relevant resume source fragments were found for this query.)";
 
     const prompt = `
       ${systemInstruction}
@@ -31,6 +43,7 @@ async function generateNextQuestion(history, lastUserResponse, context = {}) {
       Context:
       - Topic: ${topic || 'General Software Engineering'}
       - Difficulty: ${difficulty || 'Mid-level'}
+      ${ragGrounding}
       ${timeInstruction}
       
       Conversation History:

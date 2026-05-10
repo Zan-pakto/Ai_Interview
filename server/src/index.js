@@ -88,31 +88,68 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/me', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+const multer = require('multer');
+const { ingestResume } = require('./services/rag.service');
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // Limit to 5MB
+});
+
+// Helper Middleware for REST Authentication
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ error: 'Forbidden' });
+    req.userId = decoded.userId;
+    next();
+  });
+};
+
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: req.userId },
       select: { id: true, email: true, name: true }
     });
 
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-
+    if (!user) return res.status(401).json({ error: 'User not found' });
     res.json({ user });
   } catch (error) {
     console.error('❌ Auth/me error:', error.name, error.message);
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Resume Upload Endpoint with RAG Ingestion
+app.post('/api/resume/upload', authenticateToken, upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log(`📂 Received resume upload request from user ${req.userId}`);
+    
+    const ingestionResult = await ingestResume(req.userId, req.file.buffer);
+
+    res.status(200).json({
+      message: 'Resume successfully analyzed and indexed for AI interrogation!',
+      chunkCount: ingestionResult.chunkCount
+    });
+  } catch (error) {
+    console.error("❌ Resume upload failure:", error);
+    res.status(500).json({ 
+      error: 'Failed to process resume', 
+      details: error.message 
+    });
+  }
+});
+
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -223,6 +260,7 @@ io.on('connection', (socket) => {
 
     // 2. Generate Next Question using session context
     const nextQuestion = await generateNextQuestion(session.history, userText, {
+      userId: session.userId, // PASSING USER ID FOR RAG SEARCH
       topic: session.topic,
       difficulty: session.difficulty,
       remainingSeconds
