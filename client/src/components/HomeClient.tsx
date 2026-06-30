@@ -5,6 +5,7 @@ import LandingView from "@/components/LandingView";
 import InterviewView from "@/components/InterviewView";
 import SetupView from "@/components/SetupView";
 import AuthView from "@/components/AuthView";
+import { Navbar } from "@/components/Navbar";
 
 type ViewState = 'landing' | 'login' | 'signup' | 'setup' | 'interview';
 
@@ -49,7 +50,14 @@ export default function HomeClient({ initialUser }: HomeClientProps) {
   };
 
   return (
-    <main className="min-h-screen bg-neutral-50 dark:bg-black font-outfit">
+    <main className="min-h-screen bg-background font-outfit">
+      <Navbar 
+        user={user} 
+        onStart={handleStartSetup} 
+        onLogin={handleLoginClick} 
+        onHome={() => setCurrentView('landing')}
+        showNavLinks={currentView === 'landing'}
+      />
       {currentView === 'landing' && (
         <LandingView onStart={handleStartSetup} onLogin={handleLoginClick} user={user} />
       )}

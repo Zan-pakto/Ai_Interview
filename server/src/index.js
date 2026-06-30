@@ -49,7 +49,10 @@ app.post('/api/auth/signup', async (req, res) => {
       user: { id: user.id, email: user.email, name: user.name }
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('❌ Signup error:', error);
+    console.error('❌ Signup error name:', error.name);
+    console.error('❌ Signup error message:', error.message);
+    console.error('❌ Signup error stack:', error.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -77,35 +80,76 @@ app.post('/api/auth/login', async (req, res) => {
       user: { id: user.id, email: user.email, name: user.name }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
+    console.error('❌ Login error name:', error.name);
+    console.error('❌ Login error message:', error.message);
+    console.error('❌ Login error stack:', error.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.get('/api/auth/me', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+const multer = require('multer');
+const { ingestResume } = require('./services/rag.service');
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // Limit to 5MB
+});
+
+// Helper Middleware for REST Authentication
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ error: 'Forbidden' });
+    req.userId = decoded.userId;
+    next();
+  });
+};
+
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: req.userId },
       select: { id: true, email: true, name: true }
     });
 
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-
+    if (!user) return res.status(401).json({ error: 'User not found' });
     res.json({ user });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    console.error('❌ Auth/me error:', error.name, error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Resume Upload Endpoint with RAG Ingestion
+app.post('/api/resume/upload', authenticateToken, upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log(`📂 Received resume upload request from user ${req.userId}`);
+    
+    const ingestionResult = await ingestResume(req.userId, req.file.buffer);
+
+    res.status(200).json({
+      message: 'Resume successfully analyzed and indexed for AI interrogation!',
+      chunkCount: ingestionResult.chunkCount
+    });
+  } catch (error) {
+    console.error("❌ Resume upload failure:", error);
+    res.status(500).json({ 
+      error: 'Failed to process resume', 
+      details: error.message 
+    });
+  }
+});
+
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -168,7 +212,9 @@ io.on('connection', (socket) => {
         }
       });
     } catch (dbErr) {
-      console.error("Database error in join-interview:", dbErr);
+      console.error("❌ Database error in join-interview:", dbErr);
+      console.error("❌ DB error name:", dbErr.name);
+      console.error("❌ DB error message:", dbErr.message);
     }
 
     const audioBuffer = await textToSpeech(greeting);
@@ -181,8 +227,22 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('submit-metrics', (data) => {
+    const { roomId, confidence, eyeContact, expression } = data;
+    console.log(`📈 [Metrics] Room: ${roomId} | Confidence: ${confidence}% | Gaze: ${eyeContact ? 'Focused' : 'Away'} | Emotion: ${expression}`);
+    
+    const session = sessionStore.get(roomId);
+    if (session) {
+      if (!session.confidenceScores) session.confidenceScores = [];
+      if (!session.gazeChecks) session.gazeChecks = [];
+      
+      session.confidenceScores.push(confidence);
+      session.gazeChecks.push(eyeContact ? 1 : 0);
+    }
+  });
+
   socket.on('user-answer', async (data) => {
-    const { roomId, audio } = data;
+    const { roomId, audio, remainingSeconds } = data;
     const session = sessionStore.get(roomId);
     if (!session) return;
 
@@ -200,8 +260,10 @@ io.on('connection', (socket) => {
 
     // 2. Generate Next Question using session context
     const nextQuestion = await generateNextQuestion(session.history, userText, {
+      userId: session.userId, // PASSING USER ID FOR RAG SEARCH
       topic: session.topic,
-      difficulty: session.difficulty
+      difficulty: session.difficulty,
+      remainingSeconds
     });
     
     // Update history
@@ -216,7 +278,9 @@ io.on('connection', (socket) => {
         ]
       });
     } catch (dbErr) {
-      console.error("Database error saving messages:", dbErr);
+      console.error("❌ Database error saving messages:", dbErr);
+      console.error("❌ DB error name:", dbErr.name);
+      console.error("❌ DB error message:", dbErr.message);
     }
 
     // 3. TTS
@@ -232,13 +296,61 @@ io.on('connection', (socket) => {
 
   socket.on('end-interview', async (data) => {
     const { roomId } = data;
-    const session = sessionStore.get(roomId);
-    if (!session) return;
+    let session = sessionStore.get(roomId);
+    
+    // Fallback: If in-memory session was lost due to reconnection/server restart, load from DB
+    if (!session) {
+      try {
+        const dbSession = await prisma.session.findUnique({ where: { roomId } });
+        if (dbSession) {
+          session = {
+            topic: dbSession.topic,
+            difficulty: dbSession.difficulty
+          };
+        }
+      } catch (dbErr) {
+        console.error("❌ Fallback session lookup failed:", dbErr);
+      }
+    }
+
+    if (!session) {
+      socket.emit('error', { message: "Session session not found" });
+      return;
+    }
 
     try {
-      const feedback = await generateFeedback(session.history, {
+      // Load full interview history directly from PostgreSQL database as source of truth
+      const dbMessages = await prisma.message.findMany({
+        where: { sessionId: roomId },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      const history = dbMessages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
+      // Compute averages from tracked live metrics
+      let avgConfidence = 75;
+      let eyeContactPercent = 100;
+
+      if (session.confidenceScores && session.confidenceScores.length > 0) {
+        const sum = session.confidenceScores.reduce((a, b) => a + b, 0);
+        avgConfidence = Math.round(sum / session.confidenceScores.length);
+      }
+
+      if (session.gazeChecks && session.gazeChecks.length > 0) {
+        const sum = session.gazeChecks.reduce((a, b) => a + b, 0);
+        eyeContactPercent = Math.round((sum / session.gazeChecks.length) * 100);
+      }
+
+      console.log(`📊 [Evaluation] Compiling final feedback. Avg Confidence: ${avgConfidence}%, Eye Contact: ${eyeContactPercent}%`);
+
+      const feedback = await generateFeedback(history, {
         topic: session.topic,
-        difficulty: session.difficulty
+        difficulty: session.difficulty,
+        avgConfidence,
+        eyeContactPercent
       });
 
       try {
@@ -254,7 +366,9 @@ io.on('connection', (socket) => {
           }
         });
       } catch (dbErr) {
-        console.error("Database error saving session feedback:", dbErr);
+        console.error("❌ Database error saving session feedback:", dbErr);
+        console.error("❌ DB error name:", dbErr.name);
+        console.error("❌ DB error message:", dbErr.message);
       }
 
       socket.emit('interview-feedback', { feedback });

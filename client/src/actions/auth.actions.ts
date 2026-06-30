@@ -1,5 +1,5 @@
 "use server";
-
+//
 import { prisma } from "@/db/prisma";
 import { signToken, setAuthCookie, clearAuthCookie, AUTH_COOKIE_NAME } from "@/lib/auth";
 import bcrypt from "bcryptjs";
@@ -31,7 +31,10 @@ export async function loginAction(formData: any) {
     revalidatePath("/");
     return { success: true, user: { id: user.id, email: user.email, name: user.name } };
   } catch (err: any) {
-    console.error("Login error [FULL]:", err);
+    console.error("❌ Login error [FULL]:", err);
+    console.error("❌ Login error name:", err?.name);
+    console.error("❌ Login error message:", err?.message);
+    console.error("❌ Login error stack:", err?.stack);
     return { error: err.message || "An unexpected error occurred" };
   }
 }
@@ -65,7 +68,10 @@ export async function signupAction(formData: any) {
     revalidatePath("/");
     return { success: true, user: { id: user.id, email: user.email, name: user.name } };
   } catch (err: any) {
-    console.error("Signup error [FULL]:", err);
+    console.error("❌ Signup error [FULL]:", err);
+    console.error("❌ Signup error name:", err?.name);
+    console.error("❌ Signup error message:", err?.message);
+    console.error("❌ Signup error stack:", err?.stack);
     return { error: err.message || "An unexpected error occurred" };
   }
 }

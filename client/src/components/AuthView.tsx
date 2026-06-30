@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, Loader2, ChevronLeft } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
+import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signupAction, loginAction } from '@/actions/auth.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,42 +47,34 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-outfit selection:bg-blue-500/30 overflow-x-hidden relative flex items-center justify-center p-4 transition-colors duration-300">
-      {/* Background Gradients */}
-      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#00000003_1px,transparent_1px),linear-gradient(to_bottom,#00000003_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[50%] bg-blue-500/5 dark:bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-cyan-500/5 dark:bg-cyan-500/10 blur-[100px] pointer-events-none animate-float-slow" />
-      <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-fuchsia-500/5 dark:bg-fuchsia-500/10 blur-[100px] pointer-events-none animate-float-slow" style={{ animationDelay: '2s' }} />
-
-      <header className="fixed top-0 w-full z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between bg-white/70 dark:bg-black/20 backdrop-blur-xl border border-border/40 dark:border-white/5 rounded-2xl px-6 py-2.5 shadow-sm">
-          <button onClick={onBack} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center">
-              <Sparkles size={16} className="text-blue-600 dark:text-blue-400" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight">Aura</span>
-          </button>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onBack} className="text-xs text-muted-foreground hover:text-foreground">
-              <ChevronLeft size={14} /> Back
-            </Button>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen relative flex items-center justify-center p-4 selection:bg-blue-500/30 overflow-hidden font-outfit">
+      {/* Cinematic Background from Remote */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[url('/images/hero-light.png')] dark:bg-[url('/images/hero-dark.png')] bg-cover bg-center transition-all duration-1000 scale-110 brightness-95 dark:brightness-40 blur-md" />
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px]" />
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 w-full max-w-[440px] mt-16"
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-[440px]"
       >
-        <Card className="border border-border/60 dark:border-white/10 bg-white/80 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-xl shadow-black/5 dark:shadow-black/50 p-1">
-          <CardHeader className="space-y-2 pb-6 pt-8 text-center">
+        <Card className="border border-border/60 dark:border-white/10 bg-white/80 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-2xl p-1 rounded-3xl">
+          <CardHeader className="space-y-2 pb-6 pt-8 text-center relative">
+            <button 
+              onClick={onBack}
+              className="absolute top-4 left-4 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <ArrowRight className="rotate-180" size={13} /> Back
+            </button>
+            <div className="mx-auto inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 mb-2">
+              <Sparkles size={20} />
+            </div>
             <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
               {mode === 'login' ? 'Welcome back' : 'Create your account'}
             </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground font-light px-2">
+            <CardDescription className="text-xs text-muted-foreground font-light px-2">
               {mode === 'login' ? 'Enter your credentials to access your mock interview workspace' : 'Get started today with your free Aura mock practice sessions'}
             </CardDescription>
           </CardHeader>
@@ -98,7 +89,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
                     exit={{ opacity: 0, y: -10 }}
                     className="space-y-2"
                   >
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name" className="text-xs uppercase tracking-wider text-muted-foreground">Full Name</Label>
                     <div className="relative">
                       <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <Input
@@ -108,7 +99,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="John Doe"
-                        className="pl-10 h-10 border-border/80 bg-background/50 dark:bg-black/30 text-foreground"
+                        className="pl-10 h-11 border-border/80 bg-background/50 dark:bg-black/30 text-foreground rounded-xl"
                       />
                     </div>
                   </motion.div>
@@ -116,7 +107,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
               </AnimatePresence>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground">Email Address</Label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -126,16 +117,16 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="pl-10 h-10 border-border/80 bg-background/50 dark:bg-black/30 text-foreground"
+                    className="pl-10 h-11 border-border/80 bg-background/50 dark:bg-black/30 text-foreground rounded-xl"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
                   {mode === 'login' && (
-                    <a href="#" className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium">Forgot password?</a>
+                    <a href="#" className="text-[10px] text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-semibold tracking-wider uppercase">Forgot password?</a>
                   )}
                 </div>
                 <div className="relative">
@@ -147,7 +138,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 h-10 border-border/80 bg-background/50 dark:bg-black/30 text-foreground"
+                    className="pl-10 pr-10 h-11 border-border/80 bg-background/50 dark:bg-black/30 text-foreground rounded-xl"
                   />
                   <button
                     type="button"
@@ -165,7 +156,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
-                    className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive leading-relaxed"
+                    className="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl text-[10px] font-semibold text-destructive tracking-wider uppercase text-center"
                   >
                     {error}
                   </motion.div>
@@ -175,7 +166,7 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow-sm mt-2 transition-all"
+                className="w-full h-11 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-xl shadow-md mt-2 transition-all"
               >
                 {isLoading ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -188,15 +179,15 @@ export default function AuthView({ initialMode = 'login', onSuccess, onBack }: A
             </form>
           </CardContent>
 
-          <CardFooter className="flex flex-col items-center pb-8 pt-4 border-t border-border/30 dark:border-white/5 bg-muted/20 mt-4 rounded-b-xl">
-            <span className="text-sm text-muted-foreground font-light">
+          <CardFooter className="flex flex-col items-center pb-8 pt-4 border-t border-border/30 dark:border-white/5 bg-muted/20 mt-4 rounded-b-[22px]">
+            <span className="text-xs text-muted-foreground font-light">
               {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
               <button
                 onClick={() => {
                   setMode(mode === 'login' ? 'signup' : 'login');
                   setError(null);
                 }}
-                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-semibold transition-colors"
               >
                 {mode === 'login' ? 'Sign Up' : 'Log In'}
               </button>

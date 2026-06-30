@@ -1,21 +1,23 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  previewFeatures = ["driverAdapters", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String?
-  password  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  sessions  Session[]
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String?
+  password     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  sessions     Session[]
+  resumeChunks ResumeChunk[]
 }
 
 model Session {
@@ -43,3 +45,15 @@ model Message {
   sessionId String
   session   Session  @relation(fields: [sessionId], references: [roomId], onDelete: Cascade)
 }
+
+model ResumeChunk {
+  id        String                      @id @default(uuid())
+  userId    String
+  user      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  embedding Unsupported("vector(768)")?
+  createdAt DateTime                    @default(now())
+
+  @@index([embedding])
+}
+

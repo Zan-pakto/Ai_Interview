@@ -37,42 +37,42 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
   };
 
   return (
-    <div className="min-h-screen text-slate-100 flex items-center justify-center p-6 relative overflow-hidden font-outfit">
-      {/* Background grids and shapes */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] opacity-30" />
-      <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full bg-cyan-500/10 blur-[120px] animate-float-slow" />
-      <div className="absolute -bottom-28 right-0 h-[22rem] w-[22rem] rounded-full bg-indigo-500/10 blur-[140px] animate-float-slow" />
-      <div className="absolute top-1/3 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-fuchsia-500/10 blur-[130px] animate-float-slow" />
+    <div className="min-h-screen relative flex items-center justify-center pt-24 pb-12 px-4 md:px-6 selection:bg-blue-500/30 overflow-x-hidden font-outfit">
+      {/* Cinematic Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[url('/images/hero-light.png')] dark:bg-[url('/images/hero-dark.png')] bg-cover bg-center transition-all duration-1000 scale-110 brightness-95 dark:brightness-40 blur-xl" />
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-md" />
+      </div>
 
-      <div className="relative z-10 max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+      <div className="relative z-10 max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         
         {/* Left Info Column */}
         <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
           className="lg:col-span-5 space-y-8"
         >
           <div className="space-y-5">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-cyan-300 text-xs font-semibold tracking-wide backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-cyan-400 dark:text-cyan-300 text-xs font-semibold tracking-wide backdrop-blur-md">
               <Sparkles size={13} className="text-blue-400" /> 
               <span>Aura Engine V3 Live</span>
             </div>
-            <h1 className="text-4xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-white">
+            <h1 className="text-4xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground">
               Configure your <br />
-              <span className="bg-gradient-to-r from-cyan-400 via-indigo-300 to-fuchsia-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-cyan-400 dark:via-blue-300 dark:to-fuchsia-300 bg-clip-text text-transparent">
                 mock session.
               </span>
             </h1>
-            <p className="text-slate-300 text-base leading-relaxed font-light">
+            <p className="text-muted-foreground text-base leading-relaxed font-light">
               Walk into every interview with absolute readiness. Customize your focus area, set the AI pressure level, and begin practicing with instant audio feedback.
             </p>
           </div>
 
           {/* Quick Start Templates */}
-          <div className="bg-zinc-900/40 dark:bg-black/30 border border-white/5 rounded-2xl p-5 backdrop-blur-xl">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400 mb-3.5 font-semibold">
-              <WandSparkles size={14} className="text-cyan-300" />
+          <div className="bg-zinc-900/10 dark:bg-black/30 border border-border/60 rounded-2xl p-5 backdrop-blur-xl">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground mb-3.5 font-semibold">
+              <WandSparkles size={14} className="text-blue-400" />
               Quick Templates
             </div>
             <div className="flex flex-wrap gap-2">
@@ -83,7 +83,7 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setTopic(item)}
-                  className="rounded-full border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.08] text-xs font-light px-3.5 text-slate-200"
+                  className="rounded-full border-border/80 hover:border-blue-500/30 bg-background/50 hover:bg-background/80 text-xs font-light px-3.5 text-foreground transition-all"
                 >
                   {item}
                 </Button>
@@ -93,13 +93,13 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
 
           {/* Metrics */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl border border-white/5 bg-zinc-900/30 dark:bg-black/20 backdrop-blur-xl">
-              <div className="text-2xl font-bold text-white">12,000+</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Simulations Run</div>
+            <div className="p-4 rounded-xl border border-border/60 bg-zinc-900/10 dark:bg-black/20 backdrop-blur-xl">
+              <div className="text-2xl font-bold text-foreground">12,000+</div>
+              <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Simulations Run</div>
             </div>
-            <div className="p-4 rounded-xl border border-white/5 bg-zinc-900/30 dark:bg-black/20 backdrop-blur-xl">
-              <div className="text-2xl font-bold text-white">99.9%</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Linguistic Accuracy</div>
+            <div className="p-4 rounded-xl border border-border/60 bg-zinc-900/10 dark:bg-black/20 backdrop-blur-xl">
+              <div className="text-2xl font-bold text-foreground">99.9%</div>
+              <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Linguistic Accuracy</div>
             </div>
           </div>
         </motion.div>
@@ -111,14 +111,14 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="lg:col-span-7"
         >
-          <Card className="border border-white/10 bg-zinc-950/70 backdrop-blur-3xl shadow-2xl p-1">
+          <Card className="border border-border/60 dark:border-white/10 bg-white/80 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-2xl p-1 rounded-3xl">
             <form onSubmit={handleSubmit}>
               <CardHeader className="space-y-1.5 pb-6">
                 <div className="flex items-center gap-2">
-                  <Settings2 className="text-cyan-400 size-5" />
+                  <Settings2 className="text-blue-500 dark:text-cyan-400 size-5" />
                   <CardTitle className="text-xl font-bold">Interview Preferences</CardTitle>
                 </div>
-                <CardDescription className="text-sm text-slate-400 font-light">
+                <CardDescription className="text-sm text-muted-foreground font-light">
                   Define the parameters for your customized AI Interview session
                 </CardDescription>
               </CardHeader>
@@ -127,8 +127,8 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                 
                 {/* Focus Area Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="focus-area" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    <BookOpen size={14} className="text-blue-400" /> Focus Area
+                  <Label htmlFor="focus-area" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <BookOpen size={14} className="text-blue-500" /> Focus Area
                   </Label>
                   <Input 
                     id="focus-area"
@@ -136,7 +136,7 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                     placeholder="e.g. Senior Frontend Engineer, System Design"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    className="h-11 border-white/10 bg-black/20 focus-visible:border-cyan-400/50 text-white placeholder:text-slate-500 font-light"
+                    className="h-11 border-border/80 bg-background/50 dark:bg-black/35 focus-visible:border-blue-500/50 text-foreground placeholder:text-muted-foreground font-light rounded-xl"
                     required
                   />
                 </div>
@@ -146,8 +146,8 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                   
                   {/* Difficulty Selection */}
                   <div className="space-y-3.5">
-                    <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                      <Target size={14} className="text-fuchsia-400" /> Difficulty
+                    <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Target size={14} className="text-indigo-500" /> Difficulty
                     </Label>
                     <div className="flex flex-col gap-2">
                       {["Junior", "Mid-level", "Senior"].map((level) => (
@@ -157,12 +157,12 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                           onClick={() => setDifficulty(level)}
                           className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border ${
                             difficulty === level 
-                              ? 'bg-fuchsia-500/10 border-fuchsia-500/40 text-fuchsia-200 shadow-[0_0_15px_rgba(217,70,239,0.15)]' 
-                              : 'bg-black/35 border-white/5 text-slate-300 hover:border-white/15 hover:text-white'
+                              ? 'bg-blue-500/10 border-blue-500/35 text-blue-600 dark:text-blue-200 dark:shadow-[0_0_15px_rgba(34,211,238,0.05)]' 
+                              : 'bg-background/40 border-border/80 text-muted-foreground hover:border-border hover:text-foreground'
                           }`}
                         >
                           <span>{level}</span>
-                          {difficulty === level && <div className="w-1.5 h-1.5 rounded-full bg-fuchsia-400" />}
+                          {difficulty === level && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
                         </button>
                       ))}
                     </div>
@@ -170,8 +170,8 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
 
                   {/* Duration Selection */}
                   <div className="space-y-3.5">
-                    <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                      <Clock size={14} className="text-cyan-400" /> Duration
+                    <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Clock size={14} className="text-cyan-500" /> Duration
                     </Label>
                     <div className="flex flex-col gap-2">
                       {["15 min", "30 min", "45 min"].map((time) => (
@@ -181,12 +181,12 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                           onClick={() => setDuration(time)}
                           className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border ${
                             duration === time 
-                              ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-200 shadow-[0_0_15px_rgba(34,211,238,0.15)]' 
-                              : 'bg-black/35 border-white/5 text-slate-300 hover:border-white/15 hover:text-white'
+                              ? 'bg-blue-500/10 border-blue-500/35 text-blue-600 dark:text-blue-200 dark:shadow-[0_0_15px_rgba(34,211,238,0.05)]' 
+                              : 'bg-background/40 border-border/80 text-muted-foreground hover:border-border hover:text-foreground'
                           }`}
                         >
                           <span>{time}</span>
-                          {duration === time && <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
+                          {duration === time && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
                         </button>
                       ))}
                     </div>
@@ -196,8 +196,8 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
 
                 {/* Coach Mode Selection */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    <Brain size={14} className="text-indigo-400" /> Interviewer Personality
+                  <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Brain size={14} className="text-purple-500 animate-pulse" /> Interviewer Personality
                   </Label>
                   <div className="grid grid-cols-3 gap-2">
                     {["Friendly", "Challenger", "Expert"].map((mode) => (
@@ -205,10 +205,10 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                         key={mode}
                         type="button"
                         onClick={() => setCoachMode(mode)}
-                        className={`py-2 rounded-lg border text-xs font-medium transition-all ${
+                        className={`py-2 rounded-xl border text-xs font-medium transition-all ${
                           coachMode === mode
-                            ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-200 shadow-[0_0_12px_rgba(99,102,241,0.15)]"
-                            : "bg-black/20 border-white/5 text-slate-300 hover:bg-black/40 hover:border-white/15"
+                            ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-200 shadow-sm"
+                            : "bg-background/40 border-border/80 text-muted-foreground hover:bg-background/60 hover:border-border"
                         }`}
                       >
                         {mode}
@@ -219,20 +219,20 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
 
                 {/* Summary Badges */}
                 <div className="grid grid-cols-3 gap-3 pt-2 text-center">
-                  <div className="rounded-xl border border-white/5 bg-black/25 p-2.5">
-                    <Gauge size={14} className="mx-auto mb-1 text-cyan-300" />
-                    <p className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Pressure</p>
-                    <p className="text-xs text-white font-semibold mt-0.5">{difficulty === "Senior" ? "Intense" : difficulty === "Mid-level" ? "Standard" : "Gentle"}</p>
+                  <div className="rounded-xl border border-border/60 bg-background/40 p-2.5">
+                    <Gauge size={14} className="mx-auto mb-1 text-blue-500" />
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Pressure</p>
+                    <p className="text-xs text-foreground font-bold mt-0.5">{difficulty === "Senior" ? "Intense" : difficulty === "Mid-level" ? "Standard" : "Gentle"}</p>
                   </div>
-                  <div className="rounded-xl border border-white/5 bg-black/25 p-2.5">
-                    <Rocket size={14} className="mx-auto mb-1 text-fuchsia-300" />
-                    <p className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Pacing</p>
-                    <p className="text-xs text-white font-semibold mt-0.5">{duration === "15 min" ? "Fast-track" : duration === "30 min" ? "Standard" : "Deep-dive"}</p>
+                  <div className="rounded-xl border border-border/60 bg-background/40 p-2.5">
+                    <Rocket size={14} className="mx-auto mb-1 text-indigo-500" />
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Pacing</p>
+                    <p className="text-xs text-foreground font-bold mt-0.5">{duration === "15 min" ? "Fast-track" : duration === "30 min" ? "Standard" : "Deep-dive"}</p>
                   </div>
-                  <div className="rounded-xl border border-white/5 bg-black/25 p-2.5">
-                    <Sparkles size={14} className="mx-auto mb-1 text-indigo-300" />
-                    <p className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Tone</p>
-                    <p className="text-xs text-white font-semibold mt-0.5">{coachMode}</p>
+                  <div className="rounded-xl border border-border/60 bg-background/40 p-2.5">
+                    <Sparkles size={14} className="mx-auto mb-1 text-purple-500" />
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Tone</p>
+                    <p className="text-xs text-foreground font-bold mt-0.5">{coachMode}</p>
                   </div>
                 </div>
 
@@ -242,7 +242,7 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                 <Button 
                   type="submit"
                   disabled={isCreating}
-                  className="w-full h-11 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 hover:opacity-95 text-white font-semibold rounded-xl transition-all shadow-[0_8px_30px_rgb(6,182,212,0.15)] flex items-center justify-center gap-2"
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
                 >
                   {isCreating ? (
                     <span className="flex items-center gap-2">

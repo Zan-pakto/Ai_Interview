@@ -7,14 +7,35 @@ const model = genAI.getGenerativeModel({
   model: "gemini-flash-latest"
 });
 
+const { retrieveRelevantContext } = require('./rag.service');
+
 /**
  * Generates the next interview question based on user response and history.
  */
 async function generateNextQuestion(history, lastUserResponse, context = {}) {
   try {
-    const { topic, difficulty } = context;
+    const { topic, difficulty, remainingSeconds, userId } = context;
+
+    // 1. Retrieve relevant chunks from user's uploaded resume based on the topic/response
+    const searchIntent = `Experience with ${topic}. Context of response: ${lastUserResponse}`;
+    const resumeContext = await retrieveRelevantContext(userId, searchIntent, 3);
     
-    const systemInstruction = "You are a professional technical interviewer. Your goal is to conduct a rigorous but fair interview. Keep your responses concise and focused on one question at a time. Do not provide answers to your own questions. If the candidate's answer is brief or incomplete, you can ask a follow-up or move to a more challenging topic.";
+    const hasResume = resumeContext && !resumeContext.includes("No relevant resume information");
+
+    let timeInstruction = "";
+    if (typeof remainingSeconds === 'number') {
+      if (remainingSeconds <= 60 && remainingSeconds > 0) {
+        timeInstruction = `\nCRITICAL TIME WARNING: There are only ${remainingSeconds} seconds left (less than 1 minute). DO NOT ask any new technical questions. Instead, acknowledge their last answer, mention that time is almost up, and invite them to share any final questions or closing thoughts before concluding. Keep it brief and professional.`;
+      } else {
+        timeInstruction = `\nTime remaining: ${Math.round(remainingSeconds / 60)} minutes. Continue the technical interview normally.`;
+      }
+    }
+    
+    const systemInstruction = "You are a professional technical interviewer conducting an adaptive interview. Carefully evaluate the accuracy, correctness, and completeness of the candidate's latest response. You MUST dynamically adjust the difficulty of the next question based on their performance: if their response is correct, solid, and demonstrates good understanding, challenge them by increasing the difficulty slightly for the next question (e.g., asking about edge cases, scalability, or performance optimization); if their response is incorrect, weak, or they struggle, lower the difficulty slightly or offer a supportive clarifying follow-up focused on core fundamentals. Keep your responses concise, natural, and focused on one question at a time. Do not provide answers to your own questions.";
+    
+    const ragGrounding = hasResume 
+      ? `\nIMPORTANT CANDIDATE BACKGROUND (Retrieved from their actual resume):\n${resumeContext}\nUse this factual data to craft personalized follow-up questions (e.g., "I see on your resume that you worked on X at Y company, tell me about..."). DO NOT share non-public info or reveal that you are using a "Source Fragment" string.`
+      : "\n(No relevant resume source fragments were found for this query.)";
 
     const prompt = `
       ${systemInstruction}
@@ -22,13 +43,15 @@ async function generateNextQuestion(history, lastUserResponse, context = {}) {
       Context:
       - Topic: ${topic || 'General Software Engineering'}
       - Difficulty: ${difficulty || 'Mid-level'}
+      ${ragGrounding}
+      ${timeInstruction}
       
       Conversation History:
       ${history.map(m => `${m.role === 'user' ? 'Candidate' : 'Interviewer'}: ${m.content}`).join('\n')}
       
       Candidate's Latest Response: "${lastUserResponse}"
       
-      Instruction: Based on the candidate's response and the interview context, ask the next relevant question. Be professional and concise.
+      Instruction: Based on the candidate's response, the interview context, and the remaining time, formulate your next response. Be professional and concise.
     `;
 
     const result = await model.generateContent(prompt);
@@ -47,13 +70,14 @@ async function generateFeedback(history, context = {}) {
   try {
     const { topic, difficulty } = context;
 
-    if (!history || history.length === 0) {
+    const userAnswers = history.filter(m => m.role === 'user');
+    if (!history || history.length === 0 || userAnswers.length === 0) {
       return {
         overallScore: 0,
         pacing: "N/A",
         strengths: ["No response recorded"],
         improvements: ["Please complete at least one answer next time."],
-        summary: "The interview was ended before any answers were recorded."
+        summary: "The interview was ended before any answers were recorded by the candidate."
       };
     }
 
@@ -78,9 +102,17 @@ Do not wrap your response in markdown code blocks like \`\`\`json. Return ONLY t
     const response = await result.response;
     const text = response.text().trim();
     
-    // Attempt to parse JSON, cleaning up markdown code block wrapper if present
-    const cleanJson = text.replace(/^```json\s*|```$/g, '').trim();
-    return JSON.parse(cleanJson);
+    try {
+      // Robust JSON extraction: Find the outer-most curly braces to ignore conversational text/markdown
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error("❌ Failed parsing Gemini feedback JSON:", text);
+      throw parseError;
+    }
   } catch (error) {
     console.error('Error generating feedback:', error);
     return {
