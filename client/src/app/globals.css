@@ -14,6 +14,43 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+:root {
+  --background: #F5EBD7;
+  --foreground: #000000;
+  --card: rgba(255, 255, 255, 0.7);
+  --card-foreground: #000000;
+  --popover: #F5EBD7;
+  --popover-foreground: #000000;
+  --primary: #1A1A1A;
+  --primary-foreground: #F5EBD7;
+  --secondary: #E5D1B5;
+  --secondary-foreground: #1A1A1A;
+  --muted: #E5D1B5;
+  --muted-foreground: #666666;
+  --accent: #1A1A1A;
+  --accent-foreground: #FFFFFF;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: #1A1A1A;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: #F5EBD7;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #1A1A1A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E5D1B5;
+  --sidebar-accent-foreground: #1A1A1A;
+  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-ring: #1A1A1A;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --nav-bg: rgba(255, 255, 255, 0.5);
+}
+
 .dark {
   --background: #0F1115;
   --foreground: #F5F5F5;
@@ -150,42 +187,7 @@ body::after {
   --radius-5xl: calc(var(--radius) * 3);
 }
 
-:root {
-  --background: #F5EBD7;
-  --foreground: #000000;
-  --card: rgba(255, 255, 255, 0.7);
-  --card-foreground: #000000;
-  --popover: #F5EBD7;
-  --popover-foreground: #000000;
-  --primary: #1A1A1A;
-  --primary-foreground: #F5EBD7;
-  --secondary: #E5D1B5;
-  --secondary-foreground: #1A1A1A;
-  --muted: #E5D1B5;
-  --muted-foreground: #666666;
-  --accent: #1A1A1A;
-  --accent-foreground: #FFFFFF;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.1);
-  --ring: #1A1A1A;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: #F5EBD7;
-  --sidebar-foreground: #000000;
-  --sidebar-primary: #1A1A1A;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E5D1B5;
-  --sidebar-accent-foreground: #1A1A1A;
-  --sidebar-border: rgba(0, 0, 0, 0.1);
-  --sidebar-ring: #1A1A1A;
-  --card-bg: rgba(255, 255, 255, 0.7);
-  --nav-bg: rgba(255, 255, 255, 0.5);
-}
+
 
 @layer base {
   * {
