@@ -1,11 +1,11 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const pdf = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('./db.service');
 
 // Load API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const embedder = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const embedder = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 /**
  * Processes an uploaded resume:
@@ -19,7 +19,9 @@ async function ingestResume(userId, pdfBuffer) {
     console.log(`🔄 Starting ingestion for user ${userId}...`);
 
     // 1. Extract raw text from pdf
-    const data = await pdf(pdfBuffer);
+    const parser = new PDFParse({ data: pdfBuffer });
+    await parser.load();
+    const data = await parser.getText();
     const rawText = data.text;
 
     if (!rawText || rawText.trim().length < 10) {
@@ -39,8 +41,11 @@ async function ingestResume(userId, pdfBuffer) {
     for (let i = 0; i < chunks.length; i++) {
       const chunkContent = chunks[i];
       
-      // Generate embedding vector for this specific chunk
-      const result = await embedder.embedContent(chunkContent);
+      // Generate embedding vector for this specific chunk (truncated to 768 dims to match DB schema)
+      const result = await embedder.embedContent({
+        content: { parts: [{ text: chunkContent }] },
+        outputDimensionality: 768
+      });
       const vector = result.embedding.values;
 
       // Format vector as string compatible with PostgreSQL vector extension syntax '[0.1, 0.2...]'
@@ -71,8 +76,11 @@ async function retrieveRelevantContext(userId, queryText, limit = 3) {
   try {
     if (!userId) return "";
 
-    // 1. Embed the incoming query
-    const result = await embedder.embedContent(queryText);
+    // 1. Embed the incoming query (truncated to 768 dims to match DB schema)
+    const result = await embedder.embedContent({
+      content: { parts: [{ text: queryText }] },
+      outputDimensionality: 768
+    });
     const queryVector = `[${result.embedding.values.join(',')}]`;
 
     // 2. Perform Cosine Similarity search via the pgvector <=> operator

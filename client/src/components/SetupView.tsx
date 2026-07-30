@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Target, Clock, Rocket, Sparkles, ChevronRight, WandSparkles, Brain, Gauge, Settings2 } from 'lucide-react';
+import { BookOpen, Target, Clock, Rocket, Sparkles, ChevronRight, WandSparkles, Brain, Gauge, Settings2, Upload, FileText, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { createSessionAction } from '@/actions/interview.actions';
+import { getSocketToken } from '@/actions/auth.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,68 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
   const [coachMode, setCoachMode] = useState("Challenger");
   const [isCreating, setIsCreating] = useState(false);
   const quickTopics = ["React System Design", "Node.js APIs", "Behavioral Leadership", "Frontend Performance"];
+
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleResumeUpload = async (file: File) => {
+    if (file.type !== "application/pdf") {
+      setUploadStatus("error");
+      setUploadMessage("Only PDF resumes are supported.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadStatus("error");
+      setUploadMessage("File size must be less than 5MB.");
+      return;
+    }
+
+    setResumeFile(file);
+    setUploadStatus("uploading");
+    setUploadMessage("");
+
+    try {
+      const token = await getSocketToken();
+      if (!token) {
+        setUploadStatus("error");
+        setUploadMessage("Authentication token not found. Please log in again.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+      const response = await fetch(`${backendUrl}/api/resume/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload resume.");
+      }
+
+      const data = await response.json();
+      setUploadStatus("success");
+      setUploadMessage(data.message || "Resume parsed and indexed successfully!");
+    } catch (err: any) {
+      console.error("Failed to upload resume:", err);
+      setUploadStatus("error");
+      setUploadMessage(err.message || "Failed to process resume. Please try again.");
+    }
+  };
+
+  const handleClearResume = () => {
+    setResumeFile(null);
+    setUploadStatus("idle");
+    setUploadMessage("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +202,139 @@ export default function SetupView({ onStart, user }: SetupViewProps) {
                     className="h-11 border-border/80 bg-background/50 dark:bg-black/35 focus-visible:border-blue-500/50 text-foreground placeholder:text-muted-foreground font-light rounded-xl"
                     required
                   />
+                </div>
+
+                {/* Resume Upload Section */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <FileText size={14} className="text-blue-500" /> Professional Resume (Optional)
+                  </Label>
+                  
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragActive(true);
+                    }}
+                    onDragLeave={() => setIsDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragActive(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleResumeUpload(file);
+                    }}
+                    className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-all duration-200 ${
+                      isDragActive
+                        ? "border-blue-500 bg-blue-500/5 dark:bg-blue-500/10 scale-[0.99]"
+                        : "border-border/80 hover:border-border hover:bg-zinc-900/5 dark:hover:bg-white/5"
+                    } ${
+                      uploadStatus === "success"
+                        ? "border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10"
+                        : uploadStatus === "error"
+                        ? "border-red-500/40 bg-red-500/5 dark:bg-red-500/10"
+                        : ""
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleResumeUpload(file);
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={uploadStatus === "uploading"}
+                    />
+
+                    {uploadStatus === "idle" && (
+                      <div className="space-y-2">
+                        <div className="mx-auto w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                          <Upload size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">
+                            Drag & drop your resume, or <span className="text-blue-500 dark:text-cyan-400">browse</span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            PDF format only (Max 5MB)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {uploadStatus === "uploading" && (
+                      <div className="space-y-2 py-1.5">
+                        <Loader2 className="mx-auto w-8 h-8 text-blue-500 animate-spin" />
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">
+                            Processing Resume...
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Extracting text and building vector embeddings for RAG
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {uploadStatus === "success" && (
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 text-left font-sans">
+                          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0 animate-bounce">
+                            <CheckCircle2 size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate max-w-[240px] md:max-w-[320px]">
+                              {resumeFile?.name}
+                            </p>
+                            <p className="text-[10px] text-emerald-500 font-medium">
+                              Ingested & index optimized
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearResume();
+                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 relative z-10"
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
+                    )}
+
+                    {uploadStatus === "error" && (
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 text-left">
+                          <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
+                            <AlertCircle size={18} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-red-500">
+                              Upload Failed
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[240px] md:max-w-[320px]">
+                              {uploadMessage}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearResume();
+                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg hover:bg-background/80 relative z-10"
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Difficulty & Duration grid */}
